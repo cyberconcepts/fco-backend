@@ -4,4 +4,4 @@ drop table triples;
 drop table strings;
 drop table datatypes;
 drop table nodes;
-drop table iris;
+drop table namespaces;

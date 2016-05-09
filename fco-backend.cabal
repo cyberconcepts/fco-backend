@@ -46,6 +46,8 @@ test-suite fco-backend-test
                     , Fco.Backend.DatabaseSpec
   main-is:            Spec.hs
   build-depends:      base
+                    , basic-prelude
+                    , text
                     , HDBC
                     , fco-backend
                     , hspec

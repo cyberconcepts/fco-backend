@@ -11,4 +11,4 @@ type IRI = Text
 type Prefix = Text
 
 data Namespace = Namespace Identifier IRI Prefix 
-                    deriving (Show, Eq)
+                    deriving (Eq, Ord, Show)

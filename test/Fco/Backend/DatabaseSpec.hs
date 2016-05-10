@@ -7,11 +7,11 @@ import Test.QuickCheck
 import BasicPrelude
 import Data.List (sort)
 import Data.Text (unpack)
-import Database.HDBC (disconnect, getTables, hdbcDriverName, runRaw)
+import Database.HDBC (commit, disconnect, getTables, hdbcDriverName, runRaw)
 
 import Fco.Backend.Database (Connection,
-        connect, dbSettings, dbName, getNamespaces)
-import Fco.Backend.Types (Namespace (..))
+        addNode, connect, dbSettings, dbName, getNamespaces)
+import Fco.Backend.Types (Namespace (..), Node (..))
 
 
 -- `main` is here so that this module can be run from GHCi on its own.  It is
@@ -30,13 +30,15 @@ initTestDB = do
         let path = "database" </> "postgres" </> "testinit.sql"
         sql <- readFile path
         runRaw conn $ unpack sql
+        commit conn
 
 
 spec :: Spec
 spec = do
 
   describe "initialization" $ do
-    it "creates test database" initTestDB
+    it "creates test database" $ do 
+      initTestDB `shouldReturn` ()
 
   describe "db connection" $ do
     it "connects to PostgreSQL database" $ withConnection $ \conn -> do
@@ -52,3 +54,5 @@ spec = do
         [Namespace 1 "http://functionalconcepts.org/system#" "sys",
          Namespace 2 "http://www.w3.org/1999/02/22-rdf-syntax-ns#" "rdf",
          Namespace 3 "http://www.w3.org/2000/01/rdf-schema#" "rdfs"]
+    it "adds node" $ withConnection $ \conn -> do
+      addNode conn (Node 0 1 "Node") `shouldReturn` 1

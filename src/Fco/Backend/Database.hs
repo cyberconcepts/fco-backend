@@ -4,16 +4,17 @@ module Fco.Backend.Database (
           Connection, DBSettings, 
           connect, disconnect, 
           dbSettings, dbName, credentials, getRow,
-          getNamespaces) where
+          addNode, getNamespaces) where
 
 import BasicPrelude
 import Data.Text (unpack)
 import Database.HDBC.PostgreSQL (Connection, connectPostgreSQL)
 import Database.HDBC (IConnection, SqlValue,
-                      disconnect, execute, fetchAllRows, fetchRow, fromSql,
-                      prepare)
+                      commit, disconnect, execute, fetchAllRows, fetchRow, fromSql,
+                      prepare, run, runRaw, toSql)
 
-import Fco.Backend.Types (Namespace (..))
+import Fco.Backend.Types (Identifier, Namespace (..), Node (..),
+                      QueryCrit (..), NodeQuery (..))
 
 -- settings
 
@@ -43,7 +44,16 @@ getNamespaces conn = do
 
 -- queryNodes :: Connection -> NodeQuery -> [Node]
 -- getNode :: Connection -> Id -> Node
--- addNode :: Connection -> Node -> Id
+
+addNode :: IConnection conn => conn -> Node -> IO Identifier
+addNode conn (Node 0 nsid name) = do
+    let ins = "insert into nodes (namespace, name) values (?, ?)"
+    run conn ins [toSql nsid, toSql name]
+    commit conn
+    let sel = "select id from nodes where namespace = ? and name = ?"
+    Just [id] <- getRow conn sel [toSql nsid, toSql name]
+    return $ fromSql id
+
 -- updateNode :: Connection -> Node -> Node
 
 -- helper functions
@@ -54,9 +64,9 @@ getRows conn sql params = do
     execute stmt params
     fetchAllRows stmt
 
-getRow :: IConnection conn => conn -> String -> IO (Maybe [SqlValue])
-getRow conn sql = do
+getRow :: IConnection conn => conn -> String -> [SqlValue] -> IO (Maybe [SqlValue])
+getRow conn sql params = do
     stmt <- prepare conn sql
-    execute stmt []
+    execute stmt params
     fetchRow stmt
 

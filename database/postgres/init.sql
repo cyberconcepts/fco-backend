@@ -1,6 +1,4 @@
---
 -- tables
---
 
 CREATE TABLE namespaces (
     id serial NOT NULL primary key,
@@ -11,8 +9,7 @@ CREATE TABLE namespaces (
 CREATE TABLE nodes (
     id bigserial NOT NULL primary key,
     namespace bigint,
-    name text,
-    context bigint
+    name text
 );
 
 CREATE TABLE datatypes (
@@ -43,9 +40,7 @@ ALTER TABLE namespaces OWNER TO fco;
 ALTER TABLE triples OWNER TO fco;
 ALTER TABLE strings OWNER TO fco;
 
---
 -- data
---
 
 INSERT INTO namespaces (iri, prefix) 
     VALUES ('http://functionalconcepts.org/system#', 'sys');
@@ -69,16 +64,12 @@ INSERT INTO triples (subject, predicate, datatype, value) VALUES (3, 2, 1, 4);
 INSERT INTO triples (subject, predicate, datatype, value) VALUES (4, 2, 1, 4);
 INSERT INTO triples (subject, predicate, datatype, value) VALUES (5, 2, 1, 4);
 
---
 -- indexes
---
 
 CREATE INDEX idx_iri ON namespaces USING btree (iri);
 CREATE INDEX idx_prefix ON namespaces USING btree (prefix);
 
-CREATE INDEX fki_node_namespace ON nodes USING btree (namespace);
-CREATE INDEX fki_node_context ON nodes USING btree (context);
-CREATE INDEX idx_node_name ON nodes USING btree (name);
+CREATE INDEX idx_node_name ON nodes USING btree (namespace, name);
 
 CREATE INDEX fki_datatype_node ON datatypes USING btree (node);
 
@@ -90,14 +81,10 @@ CREATE INDEX idx_os ON triples USING btree (datatype, value, subject);
 
 CREATE INDEX fki_language ON strings USING btree (language);
 
---
 -- foreign key constraints
---
 
 ALTER TABLE ONLY nodes
     ADD CONSTRAINT namespace FOREIGN KEY (namespace) REFERENCES namespaces(id);
-ALTER TABLE ONLY nodes
-    ADD CONSTRAINT context FOREIGN KEY (context) REFERENCES nodes(id);
 
 ALTER TABLE ONLY datatypes
     ADD CONSTRAINT node FOREIGN KEY (node) REFERENCES nodes(id);

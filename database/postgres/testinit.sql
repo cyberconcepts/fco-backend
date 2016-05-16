@@ -59,6 +59,8 @@ INSERT INTO namespaces (iri, prefix)
 INSERT INTO namespaces (iri, prefix) 
     VALUES ('http://www.w3.org/2000/01/rdf-schema#', 'rdfs');
 
+INSERT INTO datatypes (dtname, tablename) VALUES ('node', 'nodes');
+
 -- indexes
 
 CREATE INDEX idx_iri ON namespaces USING btree (iri);

@@ -10,8 +10,8 @@ import Data.Text (unpack)
 import Database.HDBC (commit, disconnect, getTables, hdbcDriverName, runRaw)
 
 import Fco.Backend.Database (Connection,
-        addNode, connect, dbSettings, dbName, getNamespaces)
-import Fco.Backend.Types (Namespace (..), Node (..))
+        addNode, addTriple, connect, dbSettings, dbName, getNamespaces)
+import Fco.Backend.Types (Namespace (..), Object(..))
 
 
 -- `main` is here so that this module can be run from GHCi on its own.  It is
@@ -54,5 +54,9 @@ spec = do
         [Namespace 1 "http://functionalconcepts.org/system#" "sys",
          Namespace 2 "http://www.w3.org/1999/02/22-rdf-syntax-ns#" "rdf",
          Namespace 3 "http://www.w3.org/2000/01/rdf-schema#" "rdfs"]
-    it "adds node" $ withConnection $ \conn -> do
-      addNode conn (Node 0 1 "Node") `shouldReturn` 1
+    it "adds nodes" $ withConnection $ \conn -> do
+      addNode conn 1 "Node" `shouldReturn` 1
+      addNode conn 1 "Datatype" `shouldReturn` 2
+      addNode conn 2 "type" `shouldReturn` 3
+    it "adds triples" $ withConnection $ \conn -> do
+      addTriple conn 1 2 (Node 3) Nothing `shouldReturn` 1

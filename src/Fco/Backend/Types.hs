@@ -5,24 +5,28 @@ module Fco.Backend.Types where
 import BasicPrelude
 import Data.Text
 
+-- basic types (type synonyms)
 
-type Identifier = Int
+type Identifier = Int64
+type NamespaceId = Identifier
+type NodeId = Identifier
+type TripleId = Identifier
+type ContextId = Maybe NodeId
 
 type IRI = Text
 type Prefix = Text
-
-type NamespaceId = Identifier
 type Name = Text
 
-type ContextId = Maybe Identifier
+-- complex types
 
-data Namespace = Namespace Identifier IRI Prefix 
+data Namespace = Namespace NamespaceId IRI Prefix 
                     deriving (Eq, Ord, Show)
 
-data Node = Node Identifier NamespaceId Name
+data Object = Node NodeId | Int Int64 | Text Text
                     deriving (Eq, Ord, Show)
 
+-- query criteria
 
-data QueryCrit a = Equal a | Null | None
+data QueryCrit a = IsEqual a | IsEmpty | Ignore
 
 data NodeQuery = NodeQuery (QueryCrit NamespaceId) (QueryCrit Name)

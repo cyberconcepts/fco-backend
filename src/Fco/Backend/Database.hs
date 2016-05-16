@@ -4,7 +4,7 @@ module Fco.Backend.Database (
           Connection, DBSettings, 
           connect, disconnect, 
           dbSettings, dbName, credentials, getRow,
-          addNode, getNamespaces) where
+          addNode, addTriple, getNamespaces) where
 
 import BasicPrelude
 import Data.Text (unpack)
@@ -13,8 +13,8 @@ import Database.HDBC (IConnection, SqlValue,
                       commit, disconnect, execute, fetchAllRows, fetchRow, fromSql,
                       prepare, run, runRaw, toSql)
 
-import Fco.Backend.Types (Identifier, Namespace (..), Node (..),
-                      QueryCrit (..), NodeQuery (..))
+import Fco.Backend.Types (Identifier, ContextId, Name, NamespaceId, NodeId, TripleId,
+                      Object (..), QueryCrit (..), Namespace (..), NodeQuery (..))
 
 -- settings
 
@@ -45,13 +45,23 @@ getNamespaces conn = do
 -- queryNodes :: Connection -> NodeQuery -> [Node]
 -- getNode :: Connection -> Id -> Node
 
-addNode :: IConnection conn => conn -> Node -> IO Identifier
-addNode conn (Node 0 nsid name) = do
+addNode :: IConnection conn => conn -> NamespaceId -> Name -> IO NodeId
+addNode conn nsid name = do
     let ins = "insert into nodes (namespace, name) values (?, ?)"
+        sel = "select id from nodes where namespace = ? and name = ?"
     run conn ins [toSql nsid, toSql name]
     commit conn
-    let sel = "select id from nodes where namespace = ? and name = ?"
     Just [id] <- getRow conn sel [toSql nsid, toSql name]
+    return $ fromSql id
+
+addTriple :: IConnection conn => conn -> NodeId -> NodeId -> Object -> ContextId
+                 -> IO TripleId
+addTriple conn subject predicate (Node obj) context = do
+    let ins = "insert into triples (subject, predicate, datatype, value) values (?, ?, ?, ?)"
+        sel = "select id from triples where subject = ? and predicate = ? and datatype = ? and value = ?"
+    run conn ins [toSql subject, toSql predicate, toSql (1 :: Int), toSql obj]
+    commit conn
+    Just [id] <- getRow conn sel [toSql subject, toSql predicate, toSql (1 :: Int), toSql obj]
     return $ fromSql id
 
 -- updateNode :: Connection -> Node -> Node

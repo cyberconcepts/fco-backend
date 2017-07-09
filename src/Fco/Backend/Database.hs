@@ -47,21 +47,19 @@ getNamespaces conn = do
 
 addNode :: IConnection conn => conn -> NamespaceId -> Name -> IO NodeId
 addNode conn nsid name = do
-    let ins = "insert into nodes (namespace, name) values (?, ?)"
-        sel = "select id from nodes where namespace = ? and name = ?"
-    run conn ins [toSql nsid, toSql name]
+    let ins = "insert into nodes (namespace, name) values (?, ?) returning (id)"
+    Just [id] <- getRow conn ins [toSql nsid, toSql name]
     commit conn
-    Just [id] <- getRow conn sel [toSql nsid, toSql name]
     return $ fromSql id
 
 addTriple :: IConnection conn => conn -> NodeId -> NodeId -> Object -> ContextId
                  -> IO TripleId
 addTriple conn subject predicate (Node obj) context = do
-    let ins = "insert into triples (subject, predicate, datatype, value) values (?, ?, ?, ?)"
-        sel = "select id from triples where subject = ? and predicate = ? and datatype = ? and value = ?"
-    run conn ins [toSql subject, toSql predicate, toSql (1 :: Int), toSql obj]
+    let ins = "insert into triples (subject, predicate, datatype, value) \
+              \values (?, ?, ?, ?) returning id"
+    Just [id] <- getRow conn ins [
+                    toSql subject, toSql predicate, toSql (1 :: Int), toSql obj]
     commit conn
-    Just [id] <- getRow conn sel [toSql subject, toSql predicate, toSql (1 :: Int), toSql obj]
     return $ fromSql id
 
 -- updateNode :: Connection -> Node -> Node

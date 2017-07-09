@@ -7,7 +7,7 @@ license:              BSD3
 license-file:         LICENSE
 author:               functionalconcepts.org team
 maintainer:           team@functionalconcepts.org
-copyright:            2016 functionalconcepts.org team
+copyright:            Copyright 2017 functionalconcepts.org team
 category:             Semantic Web
 build-type:           Simple
 -- extra-source-files:

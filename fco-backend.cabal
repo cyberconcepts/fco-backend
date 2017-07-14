@@ -21,7 +21,7 @@ library
   build-depends:      base >= 4.7 && < 5
                     , basic-prelude
                     , text
-                    -- , fco-common
+                    -- , fco-core
                     -- , postgresql-simple
                     -- , hasql
                     , HDBC

@@ -22,11 +22,23 @@ type Name = Text
 data Namespace = Namespace NamespaceId IRI Prefix 
                     deriving (Eq, Ord, Show)
 
-data Object = Node NodeId | Int Int64 | Text Text
+data Node = Node NamespaceId Text deriving (Eq, Show)
+
+data Triple = Triple NodeId NodeId Object ContextId deriving (Eq, Show)
+
+data Object = NodeRef NodeId | IntVal Int64 | TextVal Text
                     deriving (Eq, Ord, Show)
 
 -- query criteria
 
-data QueryCrit a = IsEqual a | IsEmpty | Ignore
+data QueryCrit a = IsEqual a | Ignore deriving (Eq, Show)
 
 data NodeQuery = NodeQuery (QueryCrit NamespaceId) (QueryCrit Name)
+                    deriving (Eq, Show)
+
+data TripleQuery = TripleQuery 
+                        (QueryCrit NodeId) 
+                        (QueryCrit NodeId)
+                        (QueryCrit Object)
+                        (QueryCrit ContextId)
+                    deriving (Eq, Show)

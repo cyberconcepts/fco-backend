@@ -13,8 +13,10 @@ import Database.HDBC (IConnection, SqlValue,
                       commit, disconnect, execute, fetchAllRows, fetchRow, fromSql,
                       prepare, run, runRaw, toSql)
 
-import Fco.Backend.Types (Identifier, ContextId, Name, NamespaceId, NodeId, TripleId,
-                      Object (..), QueryCrit (..), Namespace (..), NodeQuery (..))
+import Fco.Backend.Types (
+          Name, NamespaceId, NodeId, ContextId, TripleId,
+          Namespace (..), Node (..), Triple (..), Object (..),  
+          QueryCrit (..), NodeQuery (..), TripleQuery (..))
 
 -- settings
 
@@ -42,19 +44,23 @@ getNamespaces conn = do
   where mkns [id, iri, prefix] = 
           Namespace (fromSql id) (fromSql iri) (fromSql prefix)
 
--- queryNodes :: Connection -> NodeQuery -> [Node]
--- getNode :: Connection -> Id -> Node
+-- getNode ::  -> NodeId -> IO Node
+-- queryNodes :: IConnection conn => conn -> NodeQuery -> IO [Node]
 
-addNode :: IConnection conn => conn -> NamespaceId -> Name -> IO NodeId
-addNode conn nsid name = do
+-- getTriple :: IConnection conn => conn -> TripleId -> IO Triple
+-- queryTriples :: IConnection conn => conn -> TripleQuery -> IO [Triple]
+
+addNode :: IConnection conn => conn -> Node -> IO NodeId
+addNode conn (Node nsid name) = do
     let ins = "insert into nodes (namespace, name) values (?, ?) returning (id)"
     Just [id] <- getRow conn ins [toSql nsid, toSql name]
     commit conn
     return $ fromSql id
 
-addTriple :: IConnection conn => conn -> NodeId -> NodeId -> Object -> ContextId
-                 -> IO TripleId
-addTriple conn subject predicate (Node obj) context = do
+addTriple :: IConnection conn => conn -> Triple -> IO TripleId
+--addTriple :: IConnection conn => conn -> NodeId -> NodeId -> Object -> ContextId
+--                 -> IO TripleId
+addTriple conn (Triple subject predicate (NodeRef obj) context) = do
     let ins = "insert into triples (subject, predicate, datatype, value) \
               \values (?, ?, ?, ?) returning id"
     Just [id] <- getRow conn ins [

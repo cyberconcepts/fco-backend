@@ -3,8 +3,10 @@
 module Fco.Backend.Database (
           Connection, DBSettings, 
           connect, disconnect, 
-          dbSettings, dbName, credentials, getRow,
-          addNode, addTriple, getNamespaces) where
+          dbSettings, dbName, credentials,
+          addNode, getNode,
+          addTriple, getTriple,
+          getNamespaces) where
 
 import BasicPrelude
 import Data.Text (unpack)
@@ -44,10 +46,21 @@ getNamespaces conn = do
   where mkns [id, iri, prefix] = 
           Namespace (fromSql id) (fromSql iri) (fromSql prefix)
 
--- getNode ::  -> NodeId -> IO Node
+getNode :: IConnection conn => conn -> NodeId -> IO Node
+getNode conn id = do
+    let sql = "select namespace, name from nodes where id = ?"
+    Just [nsid, name] <- getRow conn sql [toSql id]
+    return $ Node (fromSql nsid) (fromSql name)
+
 -- queryNodes :: IConnection conn => conn -> NodeQuery -> IO [Node]
 
--- getTriple :: IConnection conn => conn -> TripleId -> IO Triple
+getTriple :: IConnection conn => conn -> TripleId -> IO Triple
+getTriple conn id = do
+    let sql = "select subject, predicate, datatype, value \
+              \from triples where id = ?"
+    Just [sId, pId, dt, value] <- getRow conn sql [toSql id]
+    return $ Triple (fromSql sId) (fromSql pId) (NodeRef $ fromSql value) Nothing
+
 -- queryTriples :: IConnection conn => conn -> TripleQuery -> IO [Triple]
 
 addNode :: IConnection conn => conn -> Node -> IO NodeId
@@ -58,8 +71,6 @@ addNode conn (Node nsid name) = do
     return $ fromSql id
 
 addTriple :: IConnection conn => conn -> Triple -> IO TripleId
---addTriple :: IConnection conn => conn -> NodeId -> NodeId -> Object -> ContextId
---                 -> IO TripleId
 addTriple conn (Triple subject predicate (NodeRef obj) context) = do
     let ins = "insert into triples (subject, predicate, datatype, value) \
               \values (?, ?, ?, ?) returning id"
@@ -68,7 +79,8 @@ addTriple conn (Triple subject predicate (NodeRef obj) context) = do
     commit conn
     return $ fromSql id
 
--- updateNode :: Connection -> Node -> Node
+-- update?
+-- delete
 
 -- helper functions
 

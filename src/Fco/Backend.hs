@@ -8,10 +8,13 @@ import Fco.Backend.Database (
                 Connection, DBSettings,
                 connect, disconnect, dbSettings,
                 addNode, queryNode,
-                addTriple)
+                addTriple, queryTriple)
 import Fco.Backend.Types (
-                NamespaceId, NodeId, Node (..), Object (..), Triple (..),
-                QueryCrit (..), NodeQuery (..))
+                NamespaceId, 
+                NodeId, Node (..), ContextId,
+                TripleId, Triple (..),
+                Object (..), 
+                QueryCrit (..), TripleQuery (..))
 
 
 fcoConnect :: DBSettings -> IO Connection
@@ -26,6 +29,13 @@ node conn nsId name = do
     result <- queryNode conn nsId name
     case result of
       Nothing -> addNode conn (Node nsId name)
+      Just id -> return id
+
+triple :: Connection -> NodeId -> NodeId -> Object -> ContextId -> IO TripleId
+triple conn subject predicate object context = do
+    result <- queryTriple conn subject predicate object context
+    case result of
+      Nothing -> addTriple conn (Triple subject predicate object context)
       Just id -> return id
 
 -- load bootstrap definitions:

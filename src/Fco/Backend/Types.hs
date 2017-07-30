@@ -33,9 +33,6 @@ data Object = NodeRef NodeId | IntVal Int64 | TextVal Text
 
 data QueryCrit a = IsEqual a | Ignore deriving (Eq, Show)
 
-data NodeQuery = NodeQuery (QueryCrit NamespaceId) (QueryCrit Name)
-                    deriving (Eq, Show)
-
 data TripleQuery = TripleQuery 
                         (QueryCrit NodeId) 
                         (QueryCrit NodeId)

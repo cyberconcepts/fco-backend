@@ -5,7 +5,7 @@ module Fco.Backend.Database (
           connect, disconnect, 
           dbSettings, dbName, credentials,
           addNode, getNode, queryNode,
-          addTriple, getTriple,
+          addTriple, getTriple, queryTriple,
           getNamespaces) where
 
 import BasicPrelude
@@ -18,7 +18,7 @@ import Database.HDBC (IConnection, SqlValue,
 import Fco.Backend.Types (
           Name, NamespaceId, NodeId, ContextId, TripleId,
           Namespace (..), Node (..), Triple (..), Object (..),  
-          QueryCrit (..), NodeQuery (..), TripleQuery (..))
+          QueryCrit (..), TripleQuery (..))
 
 -- settings
 
@@ -93,6 +93,17 @@ getTriple conn id = do
               \from triples where id = ?"
     Just [sId, pId, dt, value] <- getRow conn sql [toSql id]
     return $ Triple (fromSql sId) (fromSql pId) (NodeRef $ fromSql value) Nothing
+
+queryTriple :: IConnection conn => conn -> NodeId -> NodeId -> Object -> ContextId
+                  -> IO (Maybe TripleId)
+queryTriple conn subject predicate (NodeRef obj) context = do
+    let sql = "select id from triples where subject = ? and predicate = ? \
+                 \and datatype = ? and value = ?"
+    ids <- getRows conn sql [toSql subject, toSql predicate, 
+                              toSql (1 :: Int), toSql obj]
+    case ids of
+      [] -> return Nothing
+      _  -> return $ Just $ fromSql (head (head ids))
 
 -- queryTriples :: IConnection conn => conn -> TripleQuery -> IO [Triple]
 

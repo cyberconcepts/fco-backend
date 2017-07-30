@@ -11,7 +11,7 @@ import Database.HDBC (commit, disconnect, getTables, hdbcDriverName, runRaw)
 
 import Fco.Backend.Database (
         Connection, connect, dbSettings, dbName, getNamespaces,
-        addNode, getNode, queryNode, addTriple, getTriple)
+        addNode, getNode, queryNode, addTriple, getTriple, queryTriple)
 import Fco.Backend.Types (Namespace (..), Node (..), Triple (..), Object(..))
 
 
@@ -70,4 +70,6 @@ spec = do
       addTriple conn (Triple 1 2 (NodeRef 3) Nothing) `shouldReturn` 1
     it "gets a triple" $ withConnection $ \conn -> do
       getTriple conn 1 `shouldReturn` (Triple 1 2 (NodeRef 3) Nothing)
+    it "gets a triple by its components" $ withConnection $ \conn -> do
+      queryTriple conn 1 2 (NodeRef 3) Nothing `shouldReturn` (Just 1)
 

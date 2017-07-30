@@ -6,7 +6,12 @@ import BasicPrelude
 import Data.Text (unpack)
 import Fco.Backend.Database (
                 Connection, DBSettings,
-                connect, disconnect, dbSettings)
+                connect, disconnect, dbSettings,
+                addNode, queryNode,
+                addTriple)
+import Fco.Backend.Types (
+                NamespaceId, NodeId, Node (..), Object (..), Triple (..),
+                QueryCrit (..), NodeQuery (..))
 
 
 fcoConnect :: DBSettings -> IO Connection
@@ -16,19 +21,34 @@ withConnection :: DBSettings -> (Connection -> IO c) -> IO c
 withConnection settings = bracket (fcoConnect settings) disconnect
 
 
+node :: Connection -> NamespaceId -> Text -> IO NodeId
+node conn nsId name = do
+    result <- queryNode conn nsId name
+    case result of
+      Nothing -> addNode conn (Node nsId name)
+      Just id -> return id
+
 -- load bootstrap definitions:
 
--- withConnection settings $ do
+-- withConnection settings $ \conn do
 
--- sys_node <- node "sys:node"
--- sys_datatype <- node "sys:datatype"
--- sys_string <- node "sys:string"
--- rdf_type <- node "rdf:type"
+-- let sys = 1
+-- let rdf = 2
+
+-- sys_node <- node sys "Node"
+-- sys_datatype <- node sys "Datatype"
+-- rdf_type <- node rdf "type"
+
+-- sys_string <- node "sys:String"
 -- rdf_Property <- node "rdf:Property"
 
--- triple sys_datatype rdf_type (Node sys_datatype)
--- triple sys_node rdf_type (Node sys_datatype)
--- triple sys_string rdf_type (Node sys_datatype)
+-- addTriple $ Triple sys_datatype rdf_type (NodeRef sys_datatype)
+-- or:
+-- triple "sys:datatype" "rdf:type" "sys:datatype" -- creates nodes if necessary
 
--- triple rdf_type rdf_type (Node rdf_Property)
--- triple rdf_Property rdf_type (Node rdf_type)
+-- triple sys_node rdf_type (NodeRef sys_datatype)
+-- triple sys_int rdf_type (NodeRef sys_datatype)
+-- triple sys_string rdf_type (NodeRef sys_datatype)
+
+-- triple rdf_type rdf_type (NodeRef rdf_Property)
+-- triple rdf_Property rdf_type (NodeRef rdf_type)

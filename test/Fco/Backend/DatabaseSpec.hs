@@ -1,5 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
-module Fco.Backend.DatabaseSpec (main, spec) where
+module Fco.Backend.DatabaseSpec (main, spec, initTestDB) where
 
 import Test.Hspec
 import Test.QuickCheck
@@ -11,7 +11,7 @@ import Database.HDBC (commit, disconnect, getTables, hdbcDriverName, runRaw)
 
 import Fco.Backend.Database (
         Connection, connect, dbSettings, dbName, getNamespaces,
-        addNode, getNode, addTriple, getTriple)
+        addNode, getNode, queryNode, addTriple, getTriple)
 import Fco.Backend.Types (Namespace (..), Node (..), Triple (..), Object(..))
 
 
@@ -43,19 +43,19 @@ spec = do
 
   describe "db connection" $ do
     it "connects to PostgreSQL database" $ withConnection $ \conn -> do
-      hdbcDriverName conn `shouldBe` "postgresql"
+        hdbcDriverName conn `shouldBe` "postgresql"
     it "has access to fco standard tables" $ withConnection $ \conn -> do
         tables <- getTables conn
         sort tables `shouldBe` 
             ["datatypes", "namespaces", "nodes", "strings", "triples"]
 
-  describe "triple store access" $ do
+  describe "triple database" $ do
 
     it "loads namespaces" $ withConnection $ \conn -> do
       getNamespaces conn `shouldReturn`
-        [Namespace 1 "http://functionalconcepts.org/system#" "sys",
-         Namespace 2 "http://www.w3.org/1999/02/22-rdf-syntax-ns#" "rdf",
-         Namespace 3 "http://www.w3.org/2000/01/rdf-schema#" "rdfs"]
+        [(1, Namespace "http://functionalconcepts.org/system#" "sys"),
+         (2, Namespace "http://www.w3.org/1999/02/22-rdf-syntax-ns#" "rdf"),
+         (3, Namespace "http://www.w3.org/2000/01/rdf-schema#" "rdfs")]
 
     it "adds nodes" $ withConnection $ \conn -> do
       addNode conn (Node 1 "Node") `shouldReturn` 1
@@ -63,6 +63,8 @@ spec = do
       addNode conn (Node 2 "type") `shouldReturn` 3
     it "gets a node" $ withConnection $ \conn -> do
       getNode conn 2 `shouldReturn` (Node 1 "Datatype")
+    it "gets a node by namespace and name" $ withConnection $ \conn -> do
+      queryNode conn 2 "type" `shouldReturn` (Just 3)
 
     it "adds triples" $ withConnection $ \conn -> do
       addTriple conn (Triple 1 2 (NodeRef 3) Nothing) `shouldReturn` 1

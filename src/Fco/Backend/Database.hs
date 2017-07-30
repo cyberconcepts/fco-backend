@@ -1,10 +1,10 @@
 {-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
 
 module Fco.Backend.Database (
-          Connection, DBSettings, 
+          Connection, DBSettings,
           connect, disconnect, 
           dbSettings, dbName, credentials,
-          addNode, getNode,
+          addNode, getNode, queryNode,
           addTriple, getTriple,
           getNamespaces) where
 
@@ -39,29 +39,17 @@ connect settings = connectPostgreSQL $
 
 -- API
 
-getNamespaces :: IConnection conn => conn -> IO [Namespace]
+-- namespaces
+
+getNamespaces :: IConnection conn => conn -> IO [(NamespaceId, Namespace)]
 getNamespaces conn = do
     rows <- getRows conn "select id, iri, prefix from namespaces" []
     return $ map mkns rows
-  where mkns [id, iri, prefix] = 
-          Namespace (fromSql id) (fromSql iri) (fromSql prefix)
+  where mkns :: [SqlValue] -> (NamespaceId, Namespace)
+        mkns [id, iri, prefix] = 
+          ((fromSql id), Namespace (fromSql iri) (fromSql prefix))
 
-getNode :: IConnection conn => conn -> NodeId -> IO Node
-getNode conn id = do
-    let sql = "select namespace, name from nodes where id = ?"
-    Just [nsid, name] <- getRow conn sql [toSql id]
-    return $ Node (fromSql nsid) (fromSql name)
-
--- queryNodes :: IConnection conn => conn -> NodeQuery -> IO [Node]
-
-getTriple :: IConnection conn => conn -> TripleId -> IO Triple
-getTriple conn id = do
-    let sql = "select subject, predicate, datatype, value \
-              \from triples where id = ?"
-    Just [sId, pId, dt, value] <- getRow conn sql [toSql id]
-    return $ Triple (fromSql sId) (fromSql pId) (NodeRef $ fromSql value) Nothing
-
--- queryTriples :: IConnection conn => conn -> TripleQuery -> IO [Triple]
+-- nodes
 
 addNode :: IConnection conn => conn -> Node -> IO NodeId
 addNode conn (Node nsid name) = do
@@ -69,6 +57,26 @@ addNode conn (Node nsid name) = do
     Just [id] <- getRow conn ins [toSql nsid, toSql name]
     commit conn
     return $ fromSql id
+
+getNode :: IConnection conn => conn -> NodeId -> IO Node
+getNode conn id = do
+    let sql = "select namespace, name from nodes where id = ?"
+    Just [nsid, name] <- getRow conn sql [toSql id]
+    return $ Node (fromSql nsid) (fromSql name)
+
+queryNode :: IConnection conn => conn -> NamespaceId -> Name -> IO (Maybe NodeId)
+queryNode conn nsId name = do
+    let sql = "select id from nodes where namespace = ? and name = ?"
+    ids <- getRows conn sql [toSql nsId, toSql name]
+    case ids of
+      [] -> return Nothing
+      _  -> return $ Just $ fromSql (head (head ids))
+
+-- queryNodesForNS conn nsId
+-- update?
+-- delete
+
+-- triples
 
 addTriple :: IConnection conn => conn -> Triple -> IO TripleId
 addTriple conn (Triple subject predicate (NodeRef obj) context) = do
@@ -78,6 +86,15 @@ addTriple conn (Triple subject predicate (NodeRef obj) context) = do
                     toSql subject, toSql predicate, toSql (1 :: Int), toSql obj]
     commit conn
     return $ fromSql id
+
+getTriple :: IConnection conn => conn -> TripleId -> IO Triple
+getTriple conn id = do
+    let sql = "select subject, predicate, datatype, value \
+              \from triples where id = ?"
+    Just [sId, pId, dt, value] <- getRow conn sql [toSql id]
+    return $ Triple (fromSql sId) (fromSql pId) (NodeRef $ fromSql value) Nothing
+
+-- queryTriples :: IConnection conn => conn -> TripleQuery -> IO [Triple]
 
 -- update?
 -- delete

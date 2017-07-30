@@ -19,7 +19,7 @@ type Name = Text
 
 -- complex types
 
-data Namespace = Namespace NamespaceId IRI Prefix 
+data Namespace = Namespace IRI Prefix 
                     deriving (Eq, Ord, Show)
 
 data Node = Node NamespaceId Text deriving (Eq, Show)

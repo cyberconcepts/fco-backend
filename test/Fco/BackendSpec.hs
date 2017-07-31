@@ -28,6 +28,6 @@ spec = do
         node conn rdf "Property" `shouldReturn` 4
 
     it "finds an existing triple" $ withConnection settings $ \conn -> do
-        triple conn 1 2 (NodeRef 3) Nothing `shouldReturn` 1
+        triple conn 1 3 (NodeRef 2) Nothing `shouldReturn` 1
     it "adds a new triple" $ withConnection settings $ \conn -> do
         triple conn 3 3 (NodeRef 4) Nothing `shouldReturn` 2

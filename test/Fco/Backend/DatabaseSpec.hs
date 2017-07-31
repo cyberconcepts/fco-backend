@@ -66,10 +66,11 @@ spec = do
     it "gets a node by namespace and name" $ withConnection $ \conn -> do
       queryNode conn 2 "type" `shouldReturn` (Just 3)
 
+    -- sys:Node rdf:type sys:DataType
     it "adds triples" $ withConnection $ \conn -> do
-      addTriple conn (Triple 1 2 (NodeRef 3) Nothing) `shouldReturn` 1
+      addTriple conn (Triple 1 3 (NodeRef 2) Nothing) `shouldReturn` 1
     it "gets a triple" $ withConnection $ \conn -> do
-      getTriple conn 1 `shouldReturn` (Triple 1 2 (NodeRef 3) Nothing)
+      getTriple conn 1 `shouldReturn` (Triple 1 3 (NodeRef 2) Nothing)
     it "gets a triple by its components" $ withConnection $ \conn -> do
-      queryTriple conn 1 2 (NodeRef 3) Nothing `shouldReturn` (Just 1)
+      queryTriple conn 1 3 (NodeRef 2) Nothing `shouldReturn` (Just 1)
 

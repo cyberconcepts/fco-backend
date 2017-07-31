@@ -53,10 +53,9 @@ triple conn subject predicate object context = do
 -- rdf_Property <- node "rdf:Property"
 
 -- addTriple $ Triple sys_datatype rdf_type (NodeRef sys_datatype)
--- or:
--- triple "sys:datatype" "rdf:type" "sys:datatype" -- creates nodes if necessary
+-- = triple sys_datatype rdf_type (NodeRef sys_datatype)
+-- ? triple "sys:datatype" "rdf:type" "sys:datatype"
 
--- triple sys_node rdf_type (NodeRef sys_datatype)
 -- triple sys_int rdf_type (NodeRef sys_datatype)
 -- triple sys_string rdf_type (NodeRef sys_datatype)
 

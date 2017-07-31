@@ -76,7 +76,11 @@ spec = do
       getTriple conn 1 `shouldReturn` (Triple 1 3 (NodeRef 2) Nothing)
     it "gets a triple by its components" $ withConnection $ \conn -> do
       queryTriple conn 1 3 (NodeRef 2) Nothing `shouldReturn` (Just 1)
-    it "queries triples" $ withConnection $ \conn -> do
+
+    it "query: finds triples" $ withConnection $ \conn -> do
       queryTriples conn (TripleQuery (IsEqual 1) Ignore Ignore Ignore)
           `shouldReturn` [(1, Triple 1 3 (NodeRef 2) Nothing)]
+    it "query: gives empty list if nothing is found" $ withConnection $ \conn -> do
+      queryTriples conn (TripleQuery Ignore (IsEqual 1) Ignore Ignore)
+          `shouldReturn` []
 

@@ -11,8 +11,11 @@ import Database.HDBC (commit, disconnect, getTables, hdbcDriverName, runRaw)
 
 import Fco.Backend.Database (
         Connection, connect, dbSettings, dbName, getNamespaces,
-        addNode, getNode, queryNode, addTriple, getTriple, queryTriple)
-import Fco.Backend.Types (Namespace (..), Node (..), Triple (..), Object(..))
+        addNode, getNode, queryNode, addTriple, getTriple, 
+        queryTriple, queryTriples)
+import Fco.Backend.Types (
+        Namespace (..), Node (..), Triple (..), Object(..),
+        TripleQuery (..), QueryCrit (..))
 
 
 -- `main` is here so that this module can be run from GHCi on its own.  It is
@@ -73,4 +76,7 @@ spec = do
       getTriple conn 1 `shouldReturn` (Triple 1 3 (NodeRef 2) Nothing)
     it "gets a triple by its components" $ withConnection $ \conn -> do
       queryTriple conn 1 3 (NodeRef 2) Nothing `shouldReturn` (Just 1)
+    it "queries triples" $ withConnection $ \conn -> do
+      queryTriples conn (TripleQuery (IsEqual 1) Ignore Ignore Ignore)
+          `shouldReturn` [(1, Triple 1 3 (NodeRef 2) Nothing)]
 

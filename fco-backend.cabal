@@ -20,6 +20,7 @@ library
                     , Fco.Backend.Types
   build-depends:      base >= 4.7 && < 5
                     , basic-prelude
+                    , containers
                     , text
                     -- , fco-core
                     -- , postgresql-simple

@@ -7,7 +7,7 @@ import Data.Text
 
 -- basic types (type synonyms)
 
-type Identifier = Int64
+type Identifier = Int
 type NamespaceId = Identifier
 type NodeId = Identifier
 type TripleId = Identifier

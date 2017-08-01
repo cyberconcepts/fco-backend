@@ -4,11 +4,13 @@ module Fco.Backend where
 
 import BasicPrelude
 import Data.Text (unpack)
+import Data.IntMap (fromList)
 import Fco.Backend.Database (
                 Connection, DBSettings,
                 connect, disconnect, dbSettings,
                 addNode, queryNode,
                 addTriple, queryTriple)
+import Fco.Backend.Database as DB
 import Fco.Backend.Types (
                 NamespaceId, 
                 NodeId, Node (..), ContextId,
@@ -37,6 +39,11 @@ triple conn subject predicate object context = do
     case result of
       Nothing -> addTriple conn (Triple subject predicate object context)
       Just id -> return id
+
+queryTriples :: Connection -> TripleQuery -> IO (IntMap Triple)
+queryTriples conn query = do
+  triples <- DB.queryTriples conn query
+  return $ fromList triples
 
 -- load bootstrap definitions:
 

@@ -4,9 +4,13 @@ module Fco.BackendSpec (main, spec) where
 import Test.Hspec
 import Test.QuickCheck
 
-import Fco.Backend (withConnection, node, triple)
+import Data.IntMap (fromList)
+
+import Fco.Backend (withConnection, node, triple, queryTriples)
 import Fco.Backend.Database (DBSettings(..), dbSettings)
-import Fco.Backend.Types (Object (..))
+import Fco.Backend.Types 
+                    (Object (..), Triple (..), 
+                     TripleQuery (..), QueryCrit (..))
 
 
 main :: IO ()
@@ -31,3 +35,7 @@ spec = do
         triple conn 1 3 (NodeRef 2) Nothing `shouldReturn` 1
     it "adds a new triple" $ withConnection settings $ \conn -> do
         triple conn 3 3 (NodeRef 4) Nothing `shouldReturn` 2
+
+    it "finds triples when queried" $ withConnection settings $ \conn -> do
+      queryTriples conn (TripleQuery (IsEqual 3) Ignore Ignore Ignore)
+          `shouldReturn` fromList [(2,Triple 3 3 (NodeRef 4) Nothing)]

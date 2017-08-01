@@ -48,6 +48,7 @@ test-suite fco-backend-test
   main-is:            Spec.hs
   build-depends:      base
                     , basic-prelude
+                    , containers
                     , text
                     , HDBC
                     , fco-backend

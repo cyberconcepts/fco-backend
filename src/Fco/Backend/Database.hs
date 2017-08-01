@@ -107,22 +107,11 @@ queryTriple conn subject predicate (NodeRef obj) context = do
 
 queryTriples :: IConnection conn => conn -> TripleQuery -> IO [(TripleId, Triple)]
 queryTriples conn query = do
-    let sql0 = "select id, subject, predicate, datatype, value from triples where "
-    let (qu0, par0) = ([], [])
-    let TripleQuery sub pred obj ctx = query
-    let (qu1, par1) = getQuPar "subject" sub qu0 par0
-    let (qu2, par2) = getQuPar "predicate" pred qu1 par1
-    let (qu3, par3) = getQuParOb "object" obj qu2 par2
-    let sql = sql0 ++ (intercalate " and " qu3)
-    result <- getRows conn (unpack sql) (map toSql par3)
+    let sqlS = "select id, subject, predicate, datatype, value from triples where "
+    let (sqlW, par) = setupTriplesQuery query
+    result <- getRows conn (unpack (sqlS ++ sqlW)) par
     return $ map makeTriple result 
   where 
-      getQuPar col crit qu par = case crit of 
-          IsEqual id -> ((col ++ " = ?"):qu, id:par)
-          Ignore -> (qu, par)
-      getQuParOb col crit qu par = case crit of 
-          IsEqual (NodeRef id) -> ((col ++ " = ?"):qu, id:par)
-          Ignore -> (qu, par)
       makeTriple :: [SqlValue] -> (TripleId, Triple)
       makeTriple [id, sub, pred, dt, val] = (
           fromSql id, 
@@ -132,6 +121,23 @@ queryTriples conn query = do
 -- delete
 
 -- helper functions
+
+setupTriplesQuery :: TripleQuery -> (Text, [SqlValue])
+setupTriplesQuery query = 
+    (intercalate " and " qu3, map toSql par3)
+  where
+    getQuPar col crit qu par = case crit of 
+        IsEqual id -> ((col ++ " = ?"):qu, id:par)
+        Ignore -> (qu, par)
+    getQuParOb col crit qu par = case crit of 
+        IsEqual (NodeRef id) -> ((col ++ " = ?"):qu, id:par)
+        Ignore -> (qu, par)
+    (qu0, par0) = ([], [])
+    TripleQuery sub pred obj ctx = query
+    (qu1, par1) = getQuPar "subject" sub qu0 par0
+    (qu2, par2) = getQuPar "predicate" pred qu1 par1
+    (qu3, par3) = getQuParOb "object" obj qu2 par2
+
 
 getRows :: IConnection conn => conn -> String -> [SqlValue] -> IO [[SqlValue]]
 getRows conn sql params = do

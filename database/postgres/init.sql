@@ -43,7 +43,7 @@ ALTER TABLE strings OWNER TO fco;
 -- data
 
 INSERT INTO namespaces (iri, prefix) 
-    VALUES ('http://functionalconcepts.org/system#', 'sys');
+    VALUES ('http://functionalconcepts.org/fco-common#', 'fco');
 INSERT INTO namespaces (iri, prefix) 
     VALUES ('http://www.w3.org/1999/02/22-rdf-syntax-ns#', 'rdf');
 INSERT INTO namespaces (iri, prefix) 

@@ -5,6 +5,7 @@ import Test.Hspec
 import Test.QuickCheck
 
 import BasicPrelude
+import Control.Exception (bracket)
 import Data.List (sort)
 import Data.Text (unpack)
 import Database.HDBC (commit, disconnect, getTables, hdbcDriverName, runRaw)
@@ -28,13 +29,18 @@ withConnection :: (Connection -> IO c) -> IO c
 withConnection = bracket (connect settings) disconnect
       where settings = dbSettings { dbName = "fco_test" }
 
+runSqlFromFile :: Connection -> FilePath -> IO ()
+runSqlFromFile conn path = do
+    sql <- readFile path
+    runRaw conn $ unpack sql
+    commit conn
+
+
 initTestDB :: IO ()
 initTestDB = do
     withConnection $ \conn -> do
-        let path = "database" </> "postgres" </> "testinit.sql"
-        sql <- readFile path
-        runRaw conn $ unpack sql
-        commit conn
+        runSqlFromFile conn $ "database" </> "postgres" </> "drop_tables.sql"
+        runSqlFromFile conn $ "database" </> "postgres" </> "init.sql"
 
 
 spec :: Spec
@@ -56,30 +62,28 @@ spec = do
 
     it "loads namespaces" $ withConnection $ \conn -> do
       getNamespaces conn `shouldReturn`
-        [(1, Namespace "http://functionalconcepts.org/system#" "sys"),
+        [(1, Namespace "http://functionalconcepts.org/fco-common#" "fco"),
          (2, Namespace "http://www.w3.org/1999/02/22-rdf-syntax-ns#" "rdf"),
          (3, Namespace "http://www.w3.org/2000/01/rdf-schema#" "rdfs")]
 
     it "adds nodes" $ withConnection $ \conn -> do
-      addNode conn (Node 1 "Node") `shouldReturn` 1
-      addNode conn (Node 1 "Datatype") `shouldReturn` 2
-      addNode conn (Node 2 "type") `shouldReturn` 3
+      addNode conn (Node 1 "topic") `shouldReturn` 6
     it "gets a node" $ withConnection $ \conn -> do
-      getNode conn 2 `shouldReturn` (Node 1 "Datatype")
+      getNode conn 5 `shouldReturn` (Node 1 "Datatype")
     it "gets a node by namespace and name" $ withConnection $ \conn -> do
-      queryNode conn 2 "type" `shouldReturn` (Just 3)
+      queryNode conn 2 "type" `shouldReturn` (Just 2)
 
     -- sys:Node rdf:type sys:DataType
     it "adds triples" $ withConnection $ \conn -> do
-      addTriple conn (Triple 1 3 (NodeRef 2) Nothing) `shouldReturn` 1
+      addTriple conn (Triple 6 2 (NodeRef 4) Nothing) `shouldReturn` 6
     it "gets a triple" $ withConnection $ \conn -> do
-      getTriple conn 1 `shouldReturn` (Triple 1 3 (NodeRef 2) Nothing)
+      getTriple conn 1 `shouldReturn` (Triple 1 2 (NodeRef 5) Nothing)
     it "gets a triple by its components" $ withConnection $ \conn -> do
-      queryTriple conn 1 3 (NodeRef 2) Nothing `shouldReturn` (Just 1)
+      queryTriple conn 1 2 (NodeRef 5) Nothing `shouldReturn` (Just 1)
 
     it "query: finds triples" $ withConnection $ \conn -> do
       queryTriples conn (TripleQuery (IsEqual 1) Ignore Ignore Ignore)
-          `shouldReturn` [(1, Triple 1 3 (NodeRef 2) Nothing)]
+          `shouldReturn` [(1, Triple 1 2 (NodeRef 5) Nothing)]
     it "query: gives empty list if nothing is found" $ withConnection $ \conn -> do
       queryTriples conn (TripleQuery Ignore (IsEqual 1) Ignore Ignore)
           `shouldReturn` []

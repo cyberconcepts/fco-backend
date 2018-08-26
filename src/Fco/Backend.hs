@@ -3,6 +3,7 @@
 module Fco.Backend where
 
 import BasicPrelude
+import Control.Exception (bracket)
 import Data.Text (unpack)
 import Data.IntMap (fromList)
 import Fco.Backend.Database (

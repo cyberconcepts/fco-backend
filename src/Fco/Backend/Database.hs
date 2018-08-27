@@ -1,5 +1,4 @@
 {-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
-{-# LANGUAGE BangPatterns #-}
 
 module Fco.Backend.Database (
           Connection,
@@ -38,10 +37,10 @@ connect settings = connectPostgreSQL $
 
 getNamespaces :: IConnection conn => conn -> IO [(NamespaceId, Namespace)]
 getNamespaces conn = do
-    !rows <- getRows conn "select id, iri, prefix from namespaces" []
+    rows <- getRows conn "select id, iri, prefix from namespaces" []
     return $ map mkns rows
   where mkns :: [SqlValue] -> (NamespaceId, Namespace)
-        mkns [id, iri, prefix] = 
+        mkns [id, iri, prefix] = (id, iri, prefix) `seq`
           ((fromSql id), Namespace (fromSql iri) (fromSql prefix))
 
 -- nodes

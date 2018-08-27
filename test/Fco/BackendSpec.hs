@@ -7,7 +7,7 @@ import Test.QuickCheck
 import Data.IntMap (fromList)
 
 import Fco.Backend (withConnection, getOrCreateNode, getOrCreateTriple, queryTriples,
-        showNode)
+        showNode, showTriple)
 import Fco.Backend.Types (
             Object (..), Triple (..), TripleQuery (..), QueryCrit (..),
             dbSettings, dbName, environment, envDB)
@@ -48,3 +48,7 @@ spec = do
 
     it "shows name of a node" $ 
         showNode env 6 `shouldReturn` "fco:topic"
+
+    it "displays a triple" $ 
+        showTriple env (Triple 3 2 (NodeRef 4) Nothing) `shouldReturn`
+                "rdf:Property rdf:type rdf:Class"

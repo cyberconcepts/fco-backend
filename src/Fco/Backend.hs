@@ -1,4 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
+{-# LANGUAGE BangPatterns #-}
 
 module Fco.Backend where
 
@@ -30,16 +31,28 @@ import Fco.Core.Types (
 showNode :: Environment -> NodeId -> IO Text
 showNode env nodeId = 
     withConnection (envDB env) $ \conn -> do
-      Node nsId name <- getNode conn nodeId
-      nss <- getNamespaces conn
-      let nsp = case lookup nsId nss of
-                Just (Namespace iri prefix) -> prefix
-                Nothing -> ""
-      return $ nsp ++ ":" ++ name
+        Node nsId name <- getNode conn nodeId
+        nss <- getNamespaces conn
+        let !nsp = case lookup nsId nss of
+                  Just (Namespace iri prefix) -> prefix
+                  Nothing -> ""
+        return $ nsp ++ ":" ++ name
+
+showObject :: Environment -> Object -> IO Text
+showObject env (NodeRef id) = showNode env id
+showObject env (TextVal txt) = return $ "\"" ++ txt ++ "\""
+
+showTriple :: Environment -> Triple -> IO Text
+showTriple env (Triple subject predicate object Nothing) = do
+    s <- showNode env subject 
+    p <- showNode env predicate
+    o <- showObject env object
+    return $ s ++ " " ++ p ++ " " ++ o
 
 
 --instance Read Node where
 --  readPrec = readNode
+
 
 -- lower-level database-related stuff
 

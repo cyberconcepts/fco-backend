@@ -1,9 +1,10 @@
 {-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
+{-# LANGUAGE BangPatterns #-}
 
 module Fco.Backend.Database (
-          Connection, DBSettings,
+          Connection,
           connect, disconnect, 
-          dbSettings, dbName, credentials,
+          dbName, credentials,
           addNode, getNode, queryNode,
           addTriple, getTriple, queryTriple, queryTriples,
           getNamespaces) where
@@ -16,17 +17,11 @@ import Database.HDBC (IConnection, SqlValue,
                       prepare, run, runRaw, toSql)
 
 import Fco.Backend.Types (
+          DBSettings (..),
           Name, NamespaceId, NodeId, ContextId, TripleId,
           Namespace (..), Node (..), Triple (..), Object (..),  
-          QueryCrit (..), TripleQuery (..))
-
--- settings
-
-data DBSettings = DBSettings {
-                      dbName :: Text,
-                      credentials :: (Text, Text) }
-
-dbSettings = DBSettings "fco01" ("fco", "funky")
+          QueryCrit (..), TripleQuery (..),
+          dbSettings)
 
 -- connect
 
@@ -43,7 +38,7 @@ connect settings = connectPostgreSQL $
 
 getNamespaces :: IConnection conn => conn -> IO [(NamespaceId, Namespace)]
 getNamespaces conn = do
-    rows <- getRows conn "select id, iri, prefix from namespaces" []
+    !rows <- getRows conn "select id, iri, prefix from namespaces" []
     return $ map mkns rows
   where mkns :: [SqlValue] -> (NamespaceId, Namespace)
         mkns [id, iri, prefix] = 

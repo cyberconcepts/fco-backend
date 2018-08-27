@@ -22,7 +22,6 @@ library
                     , basic-prelude
                     , containers
                     , text
-                    -- , fco-core
                     -- , postgresql-simple
                     -- , hasql
                     , HDBC
@@ -30,6 +29,7 @@ library
                     -- , configurator  -- or: ConfigFile, app-settings
                     -- , mtl
                     -- , recursion-schemes
+                    , fco-core
   default-language:   Haskell2010
 
 -- executable fco-backend

@@ -39,3 +39,19 @@ data TripleQuery = TripleQuery
                         (QueryCrit Object)
                         (QueryCrit ContextId)
                     deriving (Eq, Show)
+
+
+-- settings / environment / graph state
+
+data Environment = Environment {
+                      envDB :: DBSettings }
+
+environment = Environment dbSettings
+
+-- database settings
+
+data DBSettings = DBSettings {
+                      dbName :: Text,
+                      credentials :: (Text, Text) }
+
+dbSettings = DBSettings "fco01" ("fco", "funky")

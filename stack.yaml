@@ -7,7 +7,7 @@ resolver: lts-10.3
 # Local packages, usually specified by relative directory name
 packages:
 - '.'
-#- '../fco-core'
+- '../fco-core'
 #- '../rdf4h'
 
 # Packages to be pulled from upstream that are not in the resolver (e.g., acme-missiles-0.3)

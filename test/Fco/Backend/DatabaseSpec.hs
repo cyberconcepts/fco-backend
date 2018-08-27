@@ -11,12 +11,13 @@ import Data.Text (unpack)
 import Database.HDBC (commit, disconnect, getTables, hdbcDriverName, runRaw)
 
 import Fco.Backend.Database (
-        Connection, connect, dbSettings, dbName, getNamespaces,
+        Connection, connect, getNamespaces,
         addNode, getNode, queryNode, addTriple, getTriple, 
         queryTriple, queryTriples)
 import Fco.Backend.Types (
         Namespace (..), Node (..), Triple (..), Object(..),
-        TripleQuery (..), QueryCrit (..))
+        TripleQuery (..), QueryCrit (..),
+        dbName, dbSettings)
 
 
 -- `main` is here so that this module can be run from GHCi on its own.  It is

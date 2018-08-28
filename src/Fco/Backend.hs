@@ -56,15 +56,21 @@ parseNode env txt = do
     withConnection (envDB env) $ \conn ->
         getOrCreateNode conn nsId $ T.tail rname
 
-parseTriple :: Text -> (Text, Text, Text)
-parseTriple txt = 
+--parseTriple :: Environment -> Text -> IO Triple
+parseTriple :: Environment -> Text -> IO TripleId
+parseTriple env txt = do
     let stripSpace = snd . T.span (== ' ')
         txt1 = stripSpace txt
-        (s, r1) = T.breakOn " " txt1
+        (st, r1) = T.breakOn " " txt1
         r2 = stripSpace r1
-        (p, r3) = T.breakOn " " r2
-        o = stripSpace r3
-    in (s, p, o)
+        (pt, r3) = T.breakOn " " r2
+        ot = stripSpace r3
+    s <- parseNode env st
+    p <- parseNode env pt
+    o <- parseNode env ot
+    --return $ Triple s p (NodeRef o) Nothing
+    withConnection (envDB env) $ \conn ->
+        getOrCreateTriple conn s p (NodeRef o) Nothing
 
 
 -- helper functions
@@ -75,8 +81,12 @@ getNamespacePrefix env nsId =
         Just (Namespace iri prefix) -> prefix
         Nothing -> ""
 
-findNameSpaceByPrefix :: env -> Text -> NamespaceId
-findNameSpaceByPrefix env prefix = undefined
+findNameSpaceByPrefix :: Environment -> Text -> NamespaceId
+findNameSpaceByPrefix env prefix = 
+    case find checkPrefix (envNamespaces env) of
+        Just (id, Namespace iri pf) -> id
+        Nothing -> error $ "Namespace " ++ (show prefix) ++ " not found!"
+    where checkPrefix (id, Namespace iri pf) = pf == prefix
 
 setupEnv :: Environment -> IO Environment
 setupEnv env = 

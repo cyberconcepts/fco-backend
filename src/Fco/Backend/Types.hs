@@ -44,9 +44,10 @@ data TripleQuery = TripleQuery
 -- settings / environment / graph state
 
 data Environment = Environment {
-                      envDB :: DBSettings }
+                      envDB :: DBSettings,
+                      namespaces :: [Namespace] }
 
-environment = Environment dbSettings
+environment = Environment dbSettings []
 
 -- database settings
 

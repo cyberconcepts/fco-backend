@@ -6,7 +6,7 @@ module Fco.Backend where
 import BasicPrelude
 import Control.Exception (bracket)
 import Data.List (lookup)
-import Data.Text (pack, unpack)
+import qualified Data.Text as T
 import Data.IntMap (fromList)
 
 import Fco.Backend.Database (
@@ -47,7 +47,26 @@ showTriple env (Triple subject predicate object Nothing) = do
     s <- showNode env subject 
     p <- showNode env predicate
     o <- showObject env object
-    return $ s ++ " " ++ p ++ " " ++ o
+    return $ unwords [s, p, o]
+
+
+parseNode :: Environment -> Text -> IO NodeId
+parseNode env txt = do
+    let findNameSpace env ns = undefined
+        (ns, name) = T.breakOn ":" txt
+    nsId <- findNameSpace env ns
+    withConnection (envDB env) $ \conn ->
+        getOrCreateNode conn nsId name
+
+parseTriple :: Text -> (Text, Text, Text)
+parseTriple txt = 
+    let stripSpace = snd . T.span (== ' ')
+        txt1 = stripSpace txt
+        (s, r1) = T.breakOn " " txt1
+        r2 = stripSpace r1
+        (p, r3) = T.breakOn " " r2
+        o = stripSpace r3
+    in (s, p, o)
 
 
 --instance Read Node where
@@ -70,7 +89,8 @@ getOrCreateNode conn nsId name = do
       Nothing -> addNode conn (Node nsId name)
       Just id -> return id
 
-getOrCreateTriple :: Connection -> NodeId -> NodeId -> Object -> ContextId -> IO TripleId
+getOrCreateTriple :: Connection -> NodeId -> NodeId -> Object -> ContextId -> 
+          IO TripleId
 getOrCreateTriple conn subject predicate object context = do
     result <- queryTriple conn subject predicate object context
     case result of

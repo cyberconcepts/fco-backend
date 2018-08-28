@@ -45,7 +45,8 @@ data TripleQuery = TripleQuery
 
 data Environment = Environment {
                       envDB :: DBSettings,
-                      namespaces :: [Namespace] }
+                      envNamespaces :: [(NamespaceId, Namespace)] }
+                    deriving Show
 
 environment = Environment dbSettings []
 
@@ -54,5 +55,6 @@ environment = Environment dbSettings []
 data DBSettings = DBSettings {
                       dbName :: Text,
                       credentials :: (Text, Text) }
+                    deriving Show
 
 dbSettings = DBSettings "fco01" ("fco", "funky")

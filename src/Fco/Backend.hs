@@ -1,5 +1,4 @@
 {-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
-{-# LANGUAGE BangPatterns #-}
 
 module Fco.Backend where
 
@@ -23,20 +22,18 @@ import Fco.Backend.Types (
                 TripleId, Triple (..),
                 Object (..), 
                 QueryCrit (..), TripleQuery (..),
-                dbSettings, envDB)
+                dbSettings, envDB, envNamespaces)
 import Fco.Core.Types (
                 NodeName)
 
+
+-- format nodes and triples for display
 
 showNode :: Environment -> NodeId -> IO Text
 showNode env nodeId = 
     withConnection (envDB env) $ \conn -> do
         Node nsId name <- getNode conn nodeId
-        nss <- getNamespaces conn
-        let !nsp = case lookup nsId nss of
-                  Just (Namespace iri prefix) -> prefix
-                  Nothing -> ""
-        return $ nsp ++ ":" ++ name
+        return $ (getNamespacePrefix env nsId) ++ ":" ++ name
 
 showObject :: Environment -> Object -> IO Text
 showObject env (NodeRef id) = showNode env id
@@ -50,13 +47,14 @@ showTriple env (Triple subject predicate object Nothing) = do
     return $ unwords [s, p, o]
 
 
+-- parse nodes and triples using backend store
+
 parseNode :: Environment -> Text -> IO NodeId
 parseNode env txt = do
-    let findNameSpace env ns = undefined
-        (ns, name) = T.breakOn ":" txt
-    nsId <- findNameSpace env ns
+    let (ns, rname) = T.breakOn ":" txt
+        nsId = findNameSpaceByPrefix env ns
     withConnection (envDB env) $ \conn ->
-        getOrCreateNode conn nsId name
+        getOrCreateNode conn nsId $ T.tail rname
 
 parseTriple :: Text -> (Text, Text, Text)
 parseTriple txt = 
@@ -69,8 +67,22 @@ parseTriple txt =
     in (s, p, o)
 
 
---instance Read Node where
---  readPrec = readNode
+-- helper functions
+
+getNamespacePrefix :: Environment -> NamespaceId -> Text
+getNamespacePrefix env nsId = 
+    case lookup nsId (envNamespaces env) of
+        Just (Namespace iri prefix) -> prefix
+        Nothing -> ""
+
+findNameSpaceByPrefix :: env -> Text -> NamespaceId
+findNameSpaceByPrefix env prefix = undefined
+
+setupEnv :: Environment -> IO Environment
+setupEnv env = 
+    withConnection (envDB env) $ \conn -> do
+        nss <- getNamespaces conn
+        return $ env { envNamespaces = nss }
 
 
 -- lower-level database-related stuff

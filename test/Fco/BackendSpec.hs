@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+
 module Fco.BackendSpec (main, spec) where
 
 import Test.Hspec
@@ -6,8 +7,10 @@ import Test.QuickCheck
 
 import Data.IntMap (fromList)
 
-import Fco.Backend (withConnection, getOrCreateNode, getOrCreateTriple, queryTriples,
-        showNode, showTriple)
+import Fco.Backend (
+            getOrCreateNode, getOrCreateTriple, queryTriples,
+            setupEnv,
+            showNode, showTriple, withConnection)
 import Fco.Backend.Types (
             Object (..), Triple (..), TripleQuery (..), QueryCrit (..),
             dbSettings, dbName, environment, envDB)
@@ -44,11 +47,12 @@ spec = do
   describe "representation of nodes, triples, and graphs" $ do
 
     let db = dbSettings { dbName = "fco_test" }
-        env = environment { envDB = db }
 
-    it "shows name of a node" $ 
+    it "shows name of a node" $ do
+        env <- setupEnv $ environment { envDB = db }
         showNode env 6 `shouldReturn` "fco:topic"
 
-    it "displays a triple" $ 
+    it "displays a triple" $ do
+        env <- setupEnv $ environment { envDB = db }
         showTriple env (Triple 3 2 (NodeRef 4) Nothing) `shouldReturn`
                 "rdf:Property rdf:type rdf:Class"

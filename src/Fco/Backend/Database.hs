@@ -12,7 +12,7 @@ import BasicPrelude
 import Data.Text (unpack)
 import Database.HDBC.PostgreSQL (Connection, connectPostgreSQL)
 import Database.HDBC (IConnection, SqlValue,
-                      commit, disconnect, execute, fetchAllRows, fetchRow, fromSql,
+                      commit, disconnect, execute, fetchAllRows', fetchRow, fromSql,
                       prepare, run, runRaw, toSql)
 
 import Fco.Backend.Types (
@@ -40,7 +40,7 @@ getNamespaces conn = do
     rows <- getRows conn "select id, iri, prefix from namespaces" []
     return $ map mkns rows
   where mkns :: [SqlValue] -> (NamespaceId, Namespace)
-        mkns [id, iri, prefix] = (id, iri, prefix) `seq`
+        mkns [id, iri, prefix] = 
           ((fromSql id), Namespace (fromSql iri) (fromSql prefix))
 
 -- nodes
@@ -137,7 +137,7 @@ getRows :: IConnection conn => conn -> String -> [SqlValue] -> IO [[SqlValue]]
 getRows conn sql params = do
     stmt <- prepare conn sql
     execute stmt params
-    fetchAllRows stmt
+    fetchAllRows' stmt
 
 getRow :: IConnection conn => conn -> String -> [SqlValue] -> IO (Maybe [SqlValue])
 getRow conn sql params = do

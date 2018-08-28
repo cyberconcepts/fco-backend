@@ -101,8 +101,11 @@ queryTriple conn subject predicate (NodeRef obj) context = do
 
 queryTriples :: IConnection conn => conn -> TripleQuery -> IO [(TripleId, Triple)]
 queryTriples conn query = do
-    let sqlS = "select id, subject, predicate, datatype, value from triples where "
-    let (sqlW, par) = setupTriplesQuery query
+    let sql0 = "select id, subject, predicate, datatype, value from triples"
+        (sqlW, par) = setupTriplesQuery query
+        sqlS = case par of
+            [] -> sql0
+            _  -> sql0 ++ " where "
     result <- getRows conn (unpack (sqlS ++ sqlW)) par
     return $ map makeTriple result 
   where 

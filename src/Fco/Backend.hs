@@ -59,12 +59,7 @@ parseNode env txt = do
 --parseTriple :: Environment -> Text -> IO Triple
 parseTriple :: Environment -> Text -> IO TripleId
 parseTriple env txt = do
-    let stripSpace = snd . T.span (== ' ')
-        txt1 = stripSpace txt
-        (st, r1) = T.breakOn " " txt1
-        r2 = stripSpace r1
-        (pt, r3) = T.breakOn " " r2
-        ot = stripSpace r3
+    let (st, pt, ot) = splitTripleString txt
     s <- parseNode env st
     p <- parseNode env pt
     o <- parseNode env ot
@@ -73,7 +68,29 @@ parseTriple env txt = do
         getOrCreateTriple conn s p (NodeRef o) Nothing
 
 
+parseQuery :: Environment -> Text -> IO TripleQuery
+parseQuery env txt = do
+    let (st, pt, ot) = splitTripleString txt
+    s <- case st of
+        "?" -> return Ignore
+        _ -> do 
+                sx <- parseNode env st
+                return $ IsEqual sx
+    return $ TripleQuery s Ignore Ignore Ignore
+
+
 -- helper functions
+
+splitTripleString :: Text -> (Text, Text, Text)
+splitTripleString txt = 
+    let stripSpace = snd . T.span (== ' ')
+        txt1 = stripSpace txt
+        (st, r1) = T.breakOn " " txt1
+        r2 = stripSpace r1
+        (pt, r3) = T.breakOn " " r2
+        ot = stripSpace r3
+    in (st, pt, ot)
+
 
 getNamespacePrefix :: Environment -> NamespaceId -> Text
 getNamespacePrefix env nsId = 
@@ -126,24 +143,8 @@ queryTriples conn query = do
 
 -- load bootstrap definitions (obsolete):
 
--- withConnection settings $ \conn do
-
--- let sys = 1
--- let rdf = 2
-
--- sys_node <- node sys "Node"
--- sys_datatype <- node sys "Datatype"
--- rdf_type <- node rdf "type"
-
--- sys_string <- node "sys:String"
--- rdf_Property <- node "rdf:Property"
-
--- addTriple $ Triple sys_datatype rdf_type (NodeRef sys_datatype)
--- = triple sys_datatype rdf_type (NodeRef sys_datatype)
--- ? triple "sys:datatype" "rdf:type" "sys:datatype"
-
--- triple sys_int rdf_type (NodeRef sys_datatype)
--- triple sys_string rdf_type (NodeRef sys_datatype)
-
--- triple rdf_type rdf_type (NodeRef rdf_Property)
--- triple rdf_Property rdf_type (NodeRef rdf_type)
+-- triple env "fco:datatype rdf:type rdf:Class"
+-- triple env "fco:int rdf:type fco:datatype"
+-- triple env "fco:string rdf:type fco:datatype"
+-- triple env "rdf:type rdf:type rdf:Property"
+-- triple env "rdf:Property rdf:type rdf:Class"

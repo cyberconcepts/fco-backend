@@ -5,11 +5,11 @@ module Fco.BackendSpec (main, spec) where
 import Test.Hspec
 import Test.QuickCheck
 
-import Data.IntMap (fromList)
+import Data.IntMap (elems, fromList)
 
 import Fco.Backend (
             getOrCreateNode, getOrCreateTriple, 
-            parseNode, parseTriple, queryTriples,
+            parseNode, parseQuery, parseTriple, queryTriples,
             setupEnv,
             showNode, showTriple, withConnection)
 import Fco.Backend.Types (
@@ -41,7 +41,7 @@ spec = do
         getOrCreateTriple conn 7 2 (NodeRef 6) Nothing `shouldReturn` 7
 
     it "finds triples when queried" $ withConnection settings $ \conn -> do
-      queryTriples conn (TripleQuery (IsEqual 3) Ignore Ignore Ignore)
+        queryTriples conn (TripleQuery (IsEqual 3) Ignore Ignore Ignore)
           `shouldReturn` fromList [(3,Triple 3 2 (NodeRef 4) Nothing)]
 
 
@@ -70,3 +70,11 @@ spec = do
                 --(Triple 3 2 (NodeRef 4) Nothing) 
         parseTriple env "fco:javascript rdf:type fco:topic" `shouldReturn` 8
         parseTriple env "fco:python rdf:type fco:topic" `shouldReturn` 9
+
+    it "queries the triple store" $ do
+        env <- setupEnv $ environment { envDB = db }
+        withConnection (envDB env) $ \conn -> do 
+            qu <- parseQuery env "fco:haskell ? ?"
+            tr <- queryTriples conn qu
+            mapM (showTriple env) (elems tr) 
+                `shouldReturn` ["fco:haskell rdf:type fco:topic"]

@@ -11,7 +11,6 @@ type Identifier = Int
 type NamespaceId = Identifier
 type NodeId = Identifier
 type TripleId = Identifier
-type ContextId = Maybe NodeId
 
 type IRI = Text
 type Prefix = Text
@@ -24,7 +23,7 @@ data Namespace = Namespace IRI Prefix
 
 data Node = Node NamespaceId Text deriving (Eq, Show)
 
-data Triple = Triple NodeId NodeId Object ContextId deriving (Eq, Show)
+data Triple = Triple NodeId NodeId Object deriving (Eq, Show)
 
 data Object = NodeRef NodeId | IntVal Int64 | TextVal Text
                     deriving (Eq, Ord, Show)
@@ -37,7 +36,6 @@ data TripleQuery = TripleQuery
                         (QueryCrit NodeId) 
                         (QueryCrit NodeId)
                         (QueryCrit Object)
-                        (QueryCrit ContextId)
                     deriving (Eq, Show)
 
 

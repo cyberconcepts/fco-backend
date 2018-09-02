@@ -18,7 +18,7 @@ import Fco.Backend.Database as DB
 import Fco.Backend.Types (
                 DBSettings, Environment,
                 Namespace (..), NamespaceId, 
-                NodeId, Node (..), ContextId,
+                NodeId, Node (..),
                 TripleId, Triple (..),
                 Object (..), 
                 QueryCrit (..), TripleQuery (..),
@@ -40,7 +40,7 @@ showObject env (NodeRef id) = showNode env id
 showObject env (TextVal txt) = return $ "\"" ++ txt ++ "\""
 
 showTriple :: Environment -> Triple -> IO Text
-showTriple env (Triple subject predicate object Nothing) = do
+showTriple env (Triple subject predicate object) = do
     s <- showNode env subject 
     p <- showNode env predicate
     o <- showObject env object
@@ -63,9 +63,9 @@ parseTriple env txt = do
     s <- parseNode env st
     p <- parseNode env pt
     o <- parseNode env ot
-    --return $ Triple s p (NodeRef o) Nothing
+    --return $ Triple s p (NodeRef o)
     withConnection (envDB env) $ \conn ->
-        getOrCreateTriple conn s p (NodeRef o) Nothing
+        getOrCreateTriple conn s p (NodeRef o)
 
 
 parseQuery :: Environment -> Text -> IO TripleQuery
@@ -76,7 +76,7 @@ parseQuery env txt = do
         _ -> do 
                 sx <- parseNode env st
                 return $ IsEqual sx
-    return $ TripleQuery s Ignore Ignore Ignore
+    return $ TripleQuery s Ignore Ignore
 
 
 -- helper functions
@@ -128,12 +128,12 @@ getOrCreateNode conn nsId name = do
       Nothing -> addNode conn (Node nsId name)
       Just id -> return id
 
-getOrCreateTriple :: Connection -> NodeId -> NodeId -> Object -> ContextId -> 
+getOrCreateTriple :: Connection -> NodeId -> NodeId -> Object -> 
           IO TripleId
-getOrCreateTriple conn subject predicate object context = do
-    result <- queryTriple conn subject predicate object context
+getOrCreateTriple conn subject predicate object = do
+    result <- queryTriple conn subject predicate object
     case result of
-      Nothing -> addTriple conn (Triple subject predicate object context)
+      Nothing -> addTriple conn (Triple subject predicate object)
       Just id -> return id
 
 queryTriples :: Connection -> TripleQuery -> IO (IntMap Triple)

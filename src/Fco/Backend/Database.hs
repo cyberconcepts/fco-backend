@@ -17,7 +17,7 @@ import Database.HDBC (IConnection, SqlValue,
 
 import Fco.Backend.Types (
           DBSettings (..),
-          Name, NamespaceId, NodeId, ContextId, TripleId,
+          Name, NamespaceId, NodeId, TripleId,
           Namespace (..), Node (..), Triple (..), Object (..),  
           QueryCrit (..), TripleQuery (..),
           dbSettings)
@@ -73,7 +73,7 @@ queryNode conn nsId name = do
 -- triples
 
 addTriple :: IConnection conn => conn -> Triple -> IO TripleId
-addTriple conn (Triple subject predicate (NodeRef obj) context) = do
+addTriple conn (Triple subject predicate (NodeRef obj)) = do
     let ins = "insert into triples (subject, predicate, datatype, value) \
               \values (?, ?, ?, ?) returning id"
     Just [id] <- getRow conn ins [
@@ -86,11 +86,11 @@ getTriple conn id = do
     let sql = "select subject, predicate, datatype, value \
               \from triples where id = ?"
     Just [sId, pId, dt, value] <- getRow conn sql [toSql id]
-    return $ Triple (fromSql sId) (fromSql pId) (NodeRef $ fromSql value) Nothing
+    return $ Triple (fromSql sId) (fromSql pId) (NodeRef $ fromSql value)
 
-queryTriple :: IConnection conn => conn -> NodeId -> NodeId -> Object -> ContextId
+queryTriple :: IConnection conn => conn -> NodeId -> NodeId -> Object
                   -> IO (Maybe TripleId)
-queryTriple conn subject predicate (NodeRef obj) context = do
+queryTriple conn subject predicate (NodeRef obj) = do
     let sql = "select id from triples where subject = ? and predicate = ? \
                  \and datatype = ? and value = ?"
     ids <- getRows conn sql [toSql subject, toSql predicate, 
@@ -112,7 +112,7 @@ queryTriples conn query = do
       makeTriple :: [SqlValue] -> (TripleId, Triple)
       makeTriple [id, sub, pred, dt, val] = (
           fromSql id, 
-          Triple (fromSql sub) (fromSql pred) (NodeRef (fromSql val)) Nothing)
+          Triple (fromSql sub) (fromSql pred) (NodeRef (fromSql val)))
 
 -- update?
 -- delete
@@ -130,7 +130,7 @@ setupTriplesQuery query =
         IsEqual (NodeRef id) -> ((col ++ " = ?"):qu, id:par)
         Ignore -> (qu, par)
     (qu0, par0) = ([], [])
-    TripleQuery sub pred obj ctx = query
+    TripleQuery sub pred obj = query
     (qu1, par1) = getQuPar "subject" sub qu0 par0
     (qu2, par2) = getQuPar "predicate" pred qu1 par1
     (qu3, par3) = getQuParOb "object" obj qu2 par2

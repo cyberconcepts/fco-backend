@@ -24,8 +24,7 @@ CREATE TABLE triples (
     subject bigint NOT NULL,
     predicate bigint NOT NULL,
     datatype integer NOT NULL,
-    value bigint,
-    context bigint
+    value bigint
 );
 
 CREATE TABLE strings (
@@ -74,7 +73,6 @@ CREATE INDEX idx_node_name ON nodes USING btree (namespace, name);
 CREATE INDEX fki_datatype_node ON datatypes USING btree (node);
 
 CREATE INDEX fki_datatype ON triples USING btree (datatype);
-CREATE INDEX fki_context ON triples USING btree (context);
 CREATE INDEX idx_spo ON triples USING btree (subject, predicate, datatype, value);
 CREATE INDEX idx_po ON triples USING btree (predicate, datatype, value);
 CREATE INDEX idx_os ON triples USING btree (datatype, value, subject);
@@ -95,8 +93,6 @@ ALTER TABLE ONLY triples
     ADD CONSTRAINT predicate FOREIGN KEY (predicate) REFERENCES nodes(id);
 ALTER TABLE ONLY triples
     ADD CONSTRAINT datatype FOREIGN KEY (datatype) REFERENCES datatypes(id);
-ALTER TABLE ONLY triples
-    ADD CONSTRAINT context FOREIGN KEY (context) REFERENCES nodes(id);
 
 ALTER TABLE ONLY strings
     ADD CONSTRAINT language FOREIGN KEY (language) REFERENCES nodes(id);

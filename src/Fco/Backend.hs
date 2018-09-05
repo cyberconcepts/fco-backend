@@ -4,6 +4,7 @@ module Fco.Backend where
 
 import BasicPrelude
 import Control.Exception (bracket)
+import Data.Char (isDigit)
 import Data.List (lookup)
 import qualified Data.Text as T
 import Data.IntMap (fromList)
@@ -17,14 +18,13 @@ import Fco.Backend.Database (
 import Fco.Backend.Database as DB
 import Fco.Backend.Types (
                 DBSettings, Environment,
-                Namespace (..), NamespaceId, 
+                NamespaceId, 
                 NodeId, Node (..),
                 TripleId, Triple (..),
                 Object (..), 
                 QueryCrit (..), TripleQuery (..),
                 dbSettings, envDB, envNamespaces)
-import Fco.Core.Types (
-                NodeName)
+import Fco.Core.Types (Namespace (..), NodeName)
 
 
 -- format nodes and triples for display
@@ -38,6 +38,7 @@ showNode env nodeId =
 showObject :: Environment -> Object -> IO Text
 showObject env (NodeRef id) = showNode env id
 showObject env (TextVal txt) = return $ "\"" ++ txt ++ "\""
+showObject env (IntVal i) = return $ T.pack $ show i
 
 showTriple :: Environment -> Triple -> IO Text
 showTriple env (Triple subject predicate object) = do
@@ -56,16 +57,25 @@ parseNode env txt = do
     withConnection (envDB env) $ \conn ->
         getOrCreateNode conn nsId $ T.tail rname
 
+parseObject :: Environment -> Text -> IO Object
+parseObject env txt = 
+    case parseIntVal txt of 
+      Just n -> return $ IntVal n
+      _ -> case parseTextVal txt of 
+            Just txt -> return $ TextVal txt
+            _ -> do nodeId <- parseNode env txt
+                    return $ NodeRef nodeId
+
 --parseTriple :: Environment -> Text -> IO Triple
 parseTriple :: Environment -> Text -> IO TripleId
 parseTriple env txt = do
     let (st, pt, ot) = splitTripleString txt
     s <- parseNode env st
     p <- parseNode env pt
-    o <- parseNode env ot
-    --return $ Triple s p (NodeRef o)
+    o <- parseObject env ot
+    --return $ Triple s p o
     withConnection (envDB env) $ \conn ->
-        getOrCreateTriple conn s p (NodeRef o)
+        getOrCreateTriple conn s p o
 
 
 parseQuery :: Environment -> Text -> IO TripleQuery
@@ -90,6 +100,25 @@ splitTripleString txt =
         (pt, r3) = T.breakOn " " r2
         ot = stripSpace r3
     in (st, pt, ot)
+
+parseTextVal :: Text -> Maybe Text
+parseTextVal txt = 
+    case T.uncons txt of
+        Just ('"', t1) -> Just $ stripTrailing t1
+        _ -> Nothing
+    where 
+        stripTrailing "" = ""
+        stripTrailing t =
+            case T.last t of
+                '"' -> T.init t
+                _ -> t
+
+parseIntVal :: Text -> Maybe Int64
+parseIntVal txt =
+    case T.all isDigit txt of
+        True -> Just $ read txt
+        False -> Nothing
+
 
 
 getNamespacePrefix :: Environment -> NamespaceId -> Text

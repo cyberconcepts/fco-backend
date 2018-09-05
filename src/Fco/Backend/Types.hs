@@ -5,23 +5,19 @@ module Fco.Backend.Types where
 import BasicPrelude
 import Data.Text
 
+import Fco.Core.Types (Namespace (..), NodeName)
+
 -- basic types (type synonyms)
 
 type Identifier = Int
 type NamespaceId = Identifier
 type NodeId = Identifier
 type TripleId = Identifier
-
-type IRI = Text
-type Prefix = Text
-type Name = Text
+type TextId = Identifier
 
 -- complex types
 
-data Namespace = Namespace IRI Prefix 
-                    deriving (Eq, Ord, Show)
-
-data Node = Node NamespaceId Text deriving (Eq, Show)
+data Node = Node NamespaceId NodeName deriving (Eq, Show)
 
 data Triple = Triple NodeId NodeId Object deriving (Eq, Show)
 

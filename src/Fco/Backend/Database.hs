@@ -17,10 +17,11 @@ import Database.HDBC (IConnection, SqlValue,
 
 import Fco.Backend.Types (
           DBSettings (..),
-          Name, NamespaceId, NodeId, TripleId,
-          Namespace (..), Node (..), Triple (..), Object (..),  
+          NamespaceId, NodeId, TripleId,
+          Node (..), Triple (..), Object (..),  
           QueryCrit (..), TripleQuery (..),
           dbSettings)
+import Fco.Core.Types (Namespace (..), NodeName)
 
 -- connect
 
@@ -58,7 +59,8 @@ getNode conn id = do
     Just [nsid, name] <- getRow conn sql [toSql id]
     return $ Node (fromSql nsid) (fromSql name)
 
-queryNode :: IConnection conn => conn -> NamespaceId -> Name -> IO (Maybe NodeId)
+queryNode :: IConnection conn => conn -> NamespaceId -> NodeName 
+      -> IO (Maybe NodeId)
 queryNode conn nsId name = do
     let sql = "select id from nodes where namespace = ? and name = ?"
     ids <- getRows conn sql [toSql nsId, toSql name]

@@ -52,6 +52,7 @@ test-suite fco-backend-test
                     , text
                     , HDBC
                     , fco-backend
+                    , fco-core
                     , hspec
                     -- , tasty, tasty-hspec
                     , QuickCheck

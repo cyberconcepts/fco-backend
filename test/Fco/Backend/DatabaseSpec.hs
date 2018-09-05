@@ -15,9 +15,10 @@ import Fco.Backend.Database (
         addNode, getNode, queryNode, addTriple, getTriple, 
         queryTriple, queryTriples)
 import Fco.Backend.Types (
-        Namespace (..), Node (..), Triple (..), Object(..),
+        Node (..), Triple (..), Object(..),
         TripleQuery (..), QueryCrit (..),
         dbName, dbSettings)
+import Fco.Core.Types (Namespace (..))
 
 
 -- `main` is here so that this module can be run from GHCi on its own.  It is

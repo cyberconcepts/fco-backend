@@ -11,7 +11,7 @@ import Fco.Backend (
             getOrCreateNode, getOrCreateTriple, 
             parseNode, parseQuery, parseTriple, queryTriples,
             setupEnv,
-            showNode, showTriple, withConnection)
+            showTriple, withConnection)
 import Fco.Backend.Types (
             Object (..), Triple (..), TripleQuery (..), QueryCrit (..),
             dbSettings, dbName, environment, envDB)
@@ -48,10 +48,6 @@ spec = do
   describe "representation of nodes, triples, and graphs" $ do
 
     let db = dbSettings { dbName = "fco_test" }
-
-    it "shows name of a node" $ do
-        env <- setupEnv $ environment { envDB = db }
-        showNode env 6 `shouldReturn` "fco:topic"
 
     it "displays a triple" $ do
         env <- setupEnv $ environment { envDB = db }

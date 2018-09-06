@@ -21,7 +21,7 @@ data Node = Node NamespaceId NodeName deriving (Eq, Show)
 
 data Triple = Triple NodeId NodeId Object deriving (Eq, Show)
 
-data Object = NodeRef NodeId | IntVal Int64 | TextVal Text
+data Object = NodeRef NodeId | IntVal Int | TextVal Text
                     deriving (Eq, Ord, Show)
 
 -- query criteria

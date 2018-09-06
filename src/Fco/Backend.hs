@@ -24,31 +24,44 @@ import Fco.Backend.Types (
                 Object (..), 
                 QueryCrit (..), TripleQuery (..),
                 dbSettings, envDB, envNamespaces)
+import qualified Fco.Core.Parse as CP
+import qualified Fco.Core.Show as CS
 import Fco.Core.Types (Namespace (..), NodeName)
+import qualified Fco.Core.Types as CT
 
 
--- format nodes and triples for display
+-- convert nodes and triples to core representation
 
-showNode :: Environment -> NodeId -> IO Text
-showNode env nodeId = 
+toCoreNode :: Environment -> NodeId -> IO CT.Node
+toCoreNode env nodeId = 
     withConnection (envDB env) $ \conn -> do
         Node nsId name <- getNode conn nodeId
-        return $ (getNamespacePrefix env nsId) ++ ":" ++ name
+        return $ CT.Node (getNamespace env nsId) name
 
-showObject :: Environment -> Object -> IO Text
-showObject env (NodeRef id) = showNode env id
-showObject env (TextVal txt) = return $ "\"" ++ txt ++ "\""
-showObject env (IntVal i) = return $ T.pack $ show i
+toCoreObject :: Environment -> Object -> IO CT.Object
+toCoreObject env (NodeRef nodeId) =
+    toCoreNode env nodeId >>= return . CT.NodeRef
+toCoreObject env (TextVal txt) = return $ CT.TextVal txt
+toCoreObject env (IntVal i) = return $ CT.IntVal i
+
+toCoreTriple :: Environment -> Triple -> IO CT.Triple
+toCoreTriple env (Triple subject predicate object) = do
+    s <- toCoreNode env subject 
+    p <- toCoreNode env predicate
+    o <- toCoreObject env object
+    return $ CT.Triple s p o
 
 showTriple :: Environment -> Triple -> IO Text
-showTriple env (Triple subject predicate object) = do
-    s <- showNode env subject 
-    p <- showNode env predicate
-    o <- showObject env object
-    return $ unwords [s, p, o]
+showTriple env triple =
+    toCoreTriple env triple >>= return . CS.showTriple
 
 
 -- parse nodes and triples using backend store
+
+fromCoreNode :: Environment -> CT.Node -> IO NodeId
+fromCoreNode env (CT.Node (Namespace iri prefix) name) =
+    withConnection (envDB env) $ \conn ->
+        getOrCreateNode conn (findNameSpaceByPrefix env prefix) name
 
 parseNode :: Environment -> Text -> IO NodeId
 parseNode env txt = do
@@ -57,25 +70,25 @@ parseNode env txt = do
     withConnection (envDB env) $ \conn ->
         getOrCreateNode conn nsId $ T.tail rname
 
-parseObject :: Environment -> Text -> IO Object
-parseObject env txt = 
-    case parseIntVal txt of 
-      Just n -> return $ IntVal n
-      _ -> case parseTextVal txt of 
-            Just txt -> return $ TextVal txt
-            _ -> do nodeId <- parseNode env txt
-                    return $ NodeRef nodeId
+fromCoreObject :: Environment -> CT.Object -> IO Object
+fromCoreObject env (CT.NodeRef node) = 
+    fromCoreNode env node >>= return . NodeRef
+fromCoreObject env (CT.IntVal i) = return $ IntVal i
+fromCoreObject env (CT.TextVal txt) = return $ TextVal txt
 
---parseTriple :: Environment -> Text -> IO Triple
+fromCoreTriple :: Environment -> CT.Triple -> IO Triple
+fromCoreTriple env (CT.Triple cs cp co) = do
+    s <- fromCoreNode env cs
+    p <- fromCoreNode env cp
+    o <- fromCoreObject env co
+    return $ Triple s p o
+
 parseTriple :: Environment -> Text -> IO TripleId
 parseTriple env txt = do
-    let (st, pt, ot) = splitTripleString txt
-    s <- parseNode env st
-    p <- parseNode env pt
-    o <- parseObject env ot
-    --return $ Triple s p o
+    let ct = CP.parseTriple (Namespace "") txt
+    Triple s p o <- fromCoreTriple env ct
     withConnection (envDB env) $ \conn ->
-        getOrCreateTriple conn s p o
+        getOrCreateTriple conn s p o    
 
 
 parseQuery :: Environment -> Text -> IO TripleQuery
@@ -101,31 +114,12 @@ splitTripleString txt =
         ot = stripSpace r3
     in (st, pt, ot)
 
-parseTextVal :: Text -> Maybe Text
-parseTextVal txt = 
-    case T.uncons txt of
-        Just ('"', t1) -> Just $ stripTrailing t1
-        _ -> Nothing
-    where 
-        stripTrailing "" = ""
-        stripTrailing t =
-            case T.last t of
-                '"' -> T.init t
-                _ -> t
 
-parseIntVal :: Text -> Maybe Int64
-parseIntVal txt =
-    case T.all isDigit txt of
-        True -> Just $ read txt
-        False -> Nothing
-
-
-
-getNamespacePrefix :: Environment -> NamespaceId -> Text
-getNamespacePrefix env nsId = 
+getNamespace :: Environment -> NamespaceId -> Namespace
+getNamespace env nsId = 
     case lookup nsId (envNamespaces env) of
-        Just (Namespace iri prefix) -> prefix
-        Nothing -> ""
+        Just ns -> ns
+        Nothing -> error $ "Namespace " ++ (show nsId) ++ " not found!"
 
 findNameSpaceByPrefix :: Environment -> Text -> NamespaceId
 findNameSpaceByPrefix env prefix = 

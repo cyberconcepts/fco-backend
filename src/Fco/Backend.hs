@@ -30,7 +30,30 @@ import Fco.Core.Types (Namespace (..), NodeName)
 import qualified Fco.Core.Types as CT
 
 
--- convert nodes and triples to core representation
+-- convert (nodes and) triples to a readable representation
+
+showTriple :: Environment -> Triple -> IO Text
+showTriple env triple =
+    toCoreTriple env triple >>= return . CS.showTriple
+
+
+-- parse triples and queries using backend store
+
+parseTriple :: Environment -> Text -> IO TripleId
+parseTriple env txt = do
+    let ct = CP.parseTriple (Namespace "") txt
+    Triple s p o <- fromCoreTriple env ct
+    withConnection (envDB env) $ \conn ->
+        getOrCreateTriple conn s p o    
+
+
+parseQuery :: Environment -> Text -> IO TripleQuery
+parseQuery env txt =
+    let qt = CP.parseQuery (Namespace "") txt
+    in fromCoreQuery env qt
+
+
+-- conversion to / from Fco.Core representations
 
 toCoreNode :: Environment -> NodeId -> IO CT.Node
 toCoreNode env nodeId = 
@@ -51,24 +74,11 @@ toCoreTriple env (Triple subject predicate object) = do
     o <- toCoreObject env object
     return $ CT.Triple s p o
 
-showTriple :: Environment -> Triple -> IO Text
-showTriple env triple =
-    toCoreTriple env triple >>= return . CS.showTriple
-
-
--- parse nodes and triples using backend store
 
 fromCoreNode :: Environment -> CT.Node -> IO NodeId
 fromCoreNode env (CT.Node (Namespace iri prefix) name) =
     withConnection (envDB env) $ \conn ->
         getOrCreateNode conn (findNameSpaceByPrefix env prefix) name
-
-parseNode :: Environment -> Text -> IO NodeId
-parseNode env txt = do
-    let (ns, rname) = T.breakOn ":" txt
-        nsId = findNameSpaceByPrefix env ns
-    withConnection (envDB env) $ \conn ->
-        getOrCreateNode conn nsId $ T.tail rname
 
 fromCoreObject :: Environment -> CT.Object -> IO Object
 fromCoreObject env (CT.NodeRef node) = 
@@ -83,37 +93,23 @@ fromCoreTriple env (CT.Triple cs cp co) = do
     o <- fromCoreObject env co
     return $ Triple s p o
 
-parseTriple :: Environment -> Text -> IO TripleId
-parseTriple env txt = do
-    let ct = CP.parseTriple (Namespace "") txt
-    Triple s p o <- fromCoreTriple env ct
-    withConnection (envDB env) $ \conn ->
-        getOrCreateTriple conn s p o    
 
+fromCoreQuery :: Environment -> CT.Query -> IO TripleQuery
+fromCoreQuery env (CT.Query cs cp co) = do
+    s <- fromCoreQuCrit env cs fromCoreNode
+    p <- fromCoreQuCrit env cp fromCoreNode
+    o <- fromCoreQuCrit env co fromCoreObject
+    return $ TripleQuery s p o
 
-parseQuery :: Environment -> Text -> IO TripleQuery
-parseQuery env txt = do
-    let (st, pt, ot) = splitTripleString txt
-    s <- case st of
-        "?" -> return Ignore
-        _ -> do 
-                sx <- parseNode env st
-                return $ IsEqual sx
-    return $ TripleQuery s Ignore Ignore
+fromCoreQuCrit :: Environment -> CT.QuCrit a -> (Environment -> a -> IO b) 
+        -> IO (QueryCrit b)
+fromCoreQuCrit env qc conv =
+    case qc of 
+        CT.Ignore -> return Ignore
+        CT.IsEqual x -> conv env x >>= (return . IsEqual)
 
 
 -- helper functions
-
-splitTripleString :: Text -> (Text, Text, Text)
-splitTripleString txt = 
-    let stripSpace = snd . T.span (== ' ')
-        txt1 = stripSpace txt
-        (st, r1) = T.breakOn " " txt1
-        r2 = stripSpace r1
-        (pt, r3) = T.breakOn " " r2
-        ot = stripSpace r3
-    in (st, pt, ot)
-
 
 getNamespace :: Environment -> NamespaceId -> Namespace
 getNamespace env nsId = 

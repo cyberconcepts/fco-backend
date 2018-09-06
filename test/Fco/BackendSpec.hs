@@ -9,7 +9,7 @@ import Data.IntMap (elems, fromList)
 
 import Fco.Backend (
             getOrCreateNode, getOrCreateTriple, 
-            parseNode, parseQuery, parseTriple, queryTriples,
+            parseQuery, parseTriple, queryTriples,
             setupEnv,
             showTriple, withConnection)
 import Fco.Backend.Types (
@@ -53,12 +53,6 @@ spec = do
         env <- setupEnv $ environment { envDB = db }
         showTriple env (Triple 3 2 (NodeRef 4)) `shouldReturn`
                 "rdf:Property rdf:type rdf:Class"
-
-    it "parses a node name and finds (or creates) the node" $ do
-        env <- setupEnv $ environment { envDB = db }
-        parseNode env "fco:topic" `shouldReturn` 6
-        parseNode env "fco:haskell" `shouldReturn` 7
-        parseNode env "fco:javascript" `shouldReturn` 8
 
     it "parses a triple and stores it if it does not exist" $ do
         env <- setupEnv $ environment { envDB = db }

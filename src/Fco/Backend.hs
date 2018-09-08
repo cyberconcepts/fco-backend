@@ -14,12 +14,13 @@ import Fco.Backend.Database (
                 connect, disconnect, 
                 getNamespaces,
                 addNode, getNode, queryNode,
+                addText, getText, queryText,
                 addTriple, queryTriple)
 import Fco.Backend.Database as DB
 import Fco.Backend.Types (
                 DBSettings, Environment,
                 NamespaceId, 
-                NodeId, Node (..),
+                NodeId, TextId, Node (..),
                 TripleId, Triple (..),
                 Object (..), 
                 QueryCrit (..), TripleQuery (..),
@@ -61,11 +62,16 @@ toCoreNode env nodeId =
         Node nsId name <- getNode conn nodeId
         return $ CT.Node (getNamespace env nsId) name
 
+toText :: Environment -> TextId -> IO Text
+toText env txtId = 
+    withConnection (envDB env) $ \conn -> getText conn txtId
+
 toCoreObject :: Environment -> Object -> IO CT.Object
-toCoreObject env (NodeRef nodeId) =
+toCoreObject env (Object 1 nodeId) =
     toCoreNode env nodeId >>= return . CT.NodeRef
-toCoreObject env (TextVal txt) = return $ CT.TextVal txt
-toCoreObject env (IntVal i) = return $ CT.IntVal i
+toCoreObject env (Object 2 txtId) = 
+    toText env txtId >>= return . CT.TextVal
+toCoreObject env (Object 3 i) = return $ CT.IntVal i
 
 toCoreTriple :: Environment -> Triple -> IO CT.Triple
 toCoreTriple env (Triple subject predicate object) = do
@@ -80,11 +86,17 @@ fromCoreNode env (CT.Node (Namespace iri prefix) name) =
     withConnection (envDB env) $ \conn ->
         getOrCreateNode conn (findNameSpaceByPrefix env prefix) name
 
+fromText :: Environment -> Text -> IO TextId
+fromText env txt =
+    withConnection (envDB env) $ \conn ->
+        getOrCreateText conn txt
+
 fromCoreObject :: Environment -> CT.Object -> IO Object
 fromCoreObject env (CT.NodeRef node) = 
-    fromCoreNode env node >>= return . NodeRef
-fromCoreObject env (CT.IntVal i) = return $ IntVal i
-fromCoreObject env (CT.TextVal txt) = return $ TextVal txt
+    fromCoreNode env node >>= return . (Object 1)
+fromCoreObject env (CT.TextVal txt) =
+    fromText env txt >>= return . (Object 2)
+fromCoreObject env (CT.IntVal i) = return $ (Object 3 i)
 
 fromCoreTriple :: Environment -> CT.Triple -> IO Triple
 fromCoreTriple env (CT.Triple cs cp co) = do
@@ -145,6 +157,13 @@ getOrCreateNode conn nsId name = do
     result <- queryNode conn nsId name
     case result of
       Nothing -> addNode conn (Node nsId name)
+      Just id -> return id
+
+getOrCreateText :: Connection -> Text -> IO TextId
+getOrCreateText conn txt = do
+    result <- queryText conn txt
+    case result of
+      Nothing -> addText conn txt
       Just id -> return id
 
 getOrCreateTriple :: Connection -> NodeId -> NodeId -> Object -> 

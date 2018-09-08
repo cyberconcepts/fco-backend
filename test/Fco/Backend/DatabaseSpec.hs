@@ -77,15 +77,15 @@ spec = do
 
     -- sys:Node rdf:type sys:DataType
     it "adds triples" $ withConnection $ \conn -> do
-      addTriple conn (Triple 6 2 (NodeRef 4)) `shouldReturn` 6
+      addTriple conn (Triple 6 2 (Object 1 4)) `shouldReturn` 6
     it "gets a triple" $ withConnection $ \conn -> do
-      getTriple conn 1 `shouldReturn` (Triple 1 2 (NodeRef 5))
+      getTriple conn 1 `shouldReturn` (Triple 1 2 (Object 1 5))
     it "gets a triple by its components" $ withConnection $ \conn -> do
-      queryTriple conn 1 2 (NodeRef 5) `shouldReturn` (Just 1)
+      queryTriple conn 1 2 (Object 1 5) `shouldReturn` (Just 1)
 
     it "query: finds triples" $ withConnection $ \conn -> do
       queryTriples conn (TripleQuery (IsEqual 1) Ignore Ignore)
-          `shouldReturn` [(1, Triple 1 2 (NodeRef 5))]
+          `shouldReturn` [(1, Triple 1 2 (Object 1 5))]
     it "query: gives empty list if nothing is found" $ withConnection $ \conn -> do
       queryTriples conn (TripleQuery Ignore (IsEqual 1) Ignore)
           `shouldReturn` []

@@ -54,8 +54,9 @@ INSERT INTO nodes (namespace, name) VALUES (2, 'Property');-- 3
 INSERT INTO nodes (namespace, name) VALUES (2, 'Class');   -- 4
 INSERT INTO nodes (namespace, name) VALUES (1, 'Datatype');-- 5
 
-INSERT INTO datatypes (dtname, tablename) VALUES ('node', 'nodes');
-INSERT INTO datatypes (dtname, tablename) VALUES ('string', 'strings');
+INSERT INTO datatypes (dtname, tablename) VALUES ('node', 'nodes'); -- 1
+INSERT INTO datatypes (dtname, tablename) VALUES ('string', 'strings'); -- 2
+INSERT INTO datatypes (dtname) VALUES ('int');                      -- 3
 
 INSERT INTO triples (subject, predicate, datatype, value) VALUES (1, 2, 1, 5);
 INSERT INTO triples (subject, predicate, datatype, value) VALUES (2, 2, 1, 3);

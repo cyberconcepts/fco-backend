@@ -10,6 +10,7 @@ import Fco.Core.Types (Namespace (..), NodeName)
 -- basic types (type synonyms)
 
 type Identifier = Int
+type DataTypeId = Identifier
 type NamespaceId = Identifier
 type NodeId = Identifier
 type TripleId = Identifier
@@ -21,8 +22,9 @@ data Node = Node NamespaceId NodeName deriving (Eq, Show)
 
 data Triple = Triple NodeId NodeId Object deriving (Eq, Show)
 
-data Object = NodeRef NodeId | IntVal Int | TextVal Text
-                    deriving (Eq, Ord, Show)
+--data Object = NodeRef NodeId | IntVal Int | TextVal Text
+--                    deriving (Eq, Ord, Show)
+data Object = Object DataTypeId Int deriving (Eq, Show)
 
 -- query criteria
 

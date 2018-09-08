@@ -36,13 +36,13 @@ spec = do
         getOrCreateNode conn fco "haskell" `shouldReturn` 7
 
     it "finds an existing triple" $ withConnection settings $ \conn -> do
-        getOrCreateTriple conn 1 2 (NodeRef 5) `shouldReturn` 1
+        getOrCreateTriple conn 1 2 (Object 1 5) `shouldReturn` 1
     it "adds a new triple" $ withConnection settings $ \conn -> do
-        getOrCreateTriple conn 7 2 (NodeRef 6) `shouldReturn` 7
+        getOrCreateTriple conn 7 2 (Object 1 6) `shouldReturn` 7
 
     it "finds triples when queried" $ withConnection settings $ \conn -> do
         queryTriples conn (TripleQuery (IsEqual 3) Ignore Ignore)
-          `shouldReturn` fromList [(3,Triple 3 2 (NodeRef 4))]
+          `shouldReturn` fromList [(3,Triple 3 2 (Object 1 4))]
 
 
   describe "representation of nodes, triples, and graphs" $ do
@@ -51,13 +51,13 @@ spec = do
 
     it "displays a triple" $ do
         env <- setupEnv $ environment { envDB = db }
-        showTriple env (Triple 3 2 (NodeRef 4)) `shouldReturn`
+        showTriple env (Triple 3 2 (Object 1 4)) `shouldReturn`
                 "rdf:Property rdf:type rdf:Class"
 
     it "parses a triple and stores it if it does not exist" $ do
         env <- setupEnv $ environment { envDB = db }
         parseTriple env "rdf:Property rdf:type rdf:Class" `shouldReturn` 3
-                --(Triple 3 2 (NodeRef 4) Nothing) 
+                --(Triple 3 2 (Object 1 4) Nothing) 
         parseTriple env "fco:javascript rdf:type fco:topic" `shouldReturn` 8
         parseTriple env "fco:python rdf:type fco:topic" `shouldReturn` 9
 

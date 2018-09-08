@@ -5,6 +5,7 @@ module Fco.Backend.Database (
           connect, disconnect, 
           dbName, credentials,
           addNode, getNode, queryNode,
+          addText, getText, queryText,
           addTriple, getTriple, queryTriple, queryTriples,
           getNamespaces) where
 
@@ -17,7 +18,7 @@ import Database.HDBC (IConnection, SqlValue,
 
 import Fco.Backend.Types (
           DBSettings (..),
-          NamespaceId, NodeId, TripleId,
+          NamespaceId, NodeId, TripleId, TextId,
           Node (..), Triple (..), Object (..),  
           QueryCrit (..), TripleQuery (..),
           dbSettings)
@@ -68,6 +69,27 @@ queryNode conn nsId name = do
       [] -> return Nothing
       _  -> return $ Just $ fromSql (head (head ids))
 
+addText :: IConnection conn => conn -> Text -> IO TextId
+addText conn txt = do
+    let ins = "insert into texts text values (?) returning (id)"
+    Just [id] <- getRow conn ins [toSql txt]
+    commit conn
+    return $ fromSql id
+
+getText :: IConnection conn => conn -> TextId -> IO Text
+getText conn id = do
+    let sql = "select text from texts where id = ?"
+    Just [txt] <- getRow conn sql [toSql id]
+    return $ fromSql txt
+
+queryText :: IConnection conn => conn -> Text -> IO (Maybe TextId)
+queryText conn txt = do
+    let sql = "select id from texts where text = ?"
+    ids <- getRows conn sql [toSql txt]
+    case ids of
+      [] -> return Nothing
+      _  -> return $ Just $ fromSql (head (head ids))
+
 -- queryNodesInNS conn nsId
 -- update?
 -- delete
@@ -75,11 +97,11 @@ queryNode conn nsId name = do
 -- triples
 
 addTriple :: IConnection conn => conn -> Triple -> IO TripleId
-addTriple conn (Triple subject predicate (NodeRef obj)) = do
+addTriple conn (Triple subject predicate (Object dt val)) = do
     let ins = "insert into triples (subject, predicate, datatype, value) \
               \values (?, ?, ?, ?) returning id"
     Just [id] <- getRow conn ins [
-                    toSql subject, toSql predicate, toSql (1 :: Int), toSql obj]
+                    toSql subject, toSql predicate, toSql dt, toSql val]
     commit conn
     return $ fromSql id
 
@@ -88,15 +110,16 @@ getTriple conn id = do
     let sql = "select subject, predicate, datatype, value \
               \from triples where id = ?"
     Just [sId, pId, dt, value] <- getRow conn sql [toSql id]
-    return $ Triple (fromSql sId) (fromSql pId) (NodeRef $ fromSql value)
+    return $ Triple (fromSql sId) (fromSql pId) 
+                    $ Object (fromSql dt) (fromSql value)
 
 queryTriple :: IConnection conn => conn -> NodeId -> NodeId -> Object
                   -> IO (Maybe TripleId)
-queryTriple conn subject predicate (NodeRef obj) = do
+queryTriple conn subject predicate (Object dt val) = do
     let sql = "select id from triples where subject = ? and predicate = ? \
                  \and datatype = ? and value = ?"
     ids <- getRows conn sql [toSql subject, toSql predicate, 
-                              toSql (1 :: Int), toSql obj]
+                              toSql dt, toSql val]
     case ids of
       [] -> return Nothing
       _  -> return $ Just $ fromSql (head (head ids))
@@ -114,10 +137,12 @@ queryTriples conn query = do
       makeTriple :: [SqlValue] -> (TripleId, Triple)
       makeTriple [id, sub, pred, dt, val] = (
           fromSql id, 
-          Triple (fromSql sub) (fromSql pred) (NodeRef (fromSql val)))
+          Triple (fromSql sub) (fromSql pred) 
+                 $ Object (fromSql dt) (fromSql val))
 
 -- update?
 -- delete
+
 
 -- helper functions
 
@@ -128,14 +153,15 @@ setupTriplesQuery query =
     getQuPar col crit qu par = case crit of 
         IsEqual id -> ((col ++ " = ?"):qu, id:par)
         Ignore -> (qu, par)
-    getQuParOb col crit qu par = case crit of 
-        IsEqual (NodeRef id) -> ((col ++ " = ?"):qu, id:par)
+    getQuParOb crit qu par = case crit of 
+        IsEqual (Object dt val) -> 
+          (("datatype = ?"):("value = ?"):qu, dt:val:par)
         Ignore -> (qu, par)
     (qu0, par0) = ([], [])
     TripleQuery sub pred obj = query
     (qu1, par1) = getQuPar "subject" sub qu0 par0
     (qu2, par2) = getQuPar "predicate" pred qu1 par1
-    (qu3, par3) = getQuParOb "object" obj qu2 par2
+    (qu3, par3) = getQuParOb obj qu2 par2
 
 
 getRows :: IConnection conn => conn -> String -> [SqlValue] -> IO [[SqlValue]]

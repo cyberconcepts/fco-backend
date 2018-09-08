@@ -71,7 +71,7 @@ queryNode conn nsId name = do
 
 addText :: IConnection conn => conn -> Text -> IO TextId
 addText conn txt = do
-    let ins = "insert into texts text values (?) returning (id)"
+    let ins = "insert into texts (text) values (?) returning (id)"
     Just [id] <- getRow conn ins [toSql txt]
     commit conn
     return $ fromSql id

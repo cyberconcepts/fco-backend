@@ -58,7 +58,7 @@ spec = do
     it "has access to fco standard tables" $ withConnection $ \conn -> do
         tables <- getTables conn
         sort tables `shouldBe` 
-            ["datatypes", "namespaces", "nodes", "strings", "triples"]
+            ["datatypes", "namespaces", "nodes", "texts", "triples"]
 
   describe "triple database" $ do
 

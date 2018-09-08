@@ -27,7 +27,7 @@ CREATE TABLE triples (
     value bigint
 );
 
-CREATE TABLE strings (
+CREATE TABLE texts (
     id bigserial NOT NULL primary key,
     language bigint,
     text text NOT NULL
@@ -37,7 +37,7 @@ ALTER TABLE nodes OWNER TO fco;
 ALTER TABLE datatypes OWNER TO fco;
 ALTER TABLE namespaces OWNER TO fco;
 ALTER TABLE triples OWNER TO fco;
-ALTER TABLE strings OWNER TO fco;
+ALTER TABLE texts OWNER TO fco;
 
 -- data
 
@@ -55,7 +55,7 @@ INSERT INTO nodes (namespace, name) VALUES (2, 'Class');   -- 4
 INSERT INTO nodes (namespace, name) VALUES (1, 'Datatype');-- 5
 
 INSERT INTO datatypes (dtname, tablename) VALUES ('node', 'nodes'); -- 1
-INSERT INTO datatypes (dtname, tablename) VALUES ('string', 'strings'); -- 2
+INSERT INTO datatypes (dtname, tablename) VALUES ('string', 'texts'); -- 2
 INSERT INTO datatypes (dtname) VALUES ('int');                      -- 3
 
 INSERT INTO triples (subject, predicate, datatype, value) VALUES (1, 2, 1, 5);
@@ -78,7 +78,7 @@ CREATE INDEX idx_spo ON triples USING btree (subject, predicate, datatype, value
 CREATE INDEX idx_po ON triples USING btree (predicate, datatype, value);
 CREATE INDEX idx_os ON triples USING btree (datatype, value, subject);
 
-CREATE INDEX fki_language ON strings USING btree (language);
+CREATE INDEX fki_language ON texts USING btree (language);
 
 -- foreign key constraints
 
@@ -95,6 +95,6 @@ ALTER TABLE ONLY triples
 ALTER TABLE ONLY triples
     ADD CONSTRAINT datatype FOREIGN KEY (datatype) REFERENCES datatypes(id);
 
-ALTER TABLE ONLY strings
+ALTER TABLE ONLY texts
     ADD CONSTRAINT language FOREIGN KEY (language) REFERENCES nodes(id);
 

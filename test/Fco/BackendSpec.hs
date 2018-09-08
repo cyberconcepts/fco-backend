@@ -60,6 +60,8 @@ spec = do
                 --(Triple 3 2 (Object 1 4) Nothing) 
         parseTriple env "fco:javascript rdf:type fco:topic" `shouldReturn` 8
         parseTriple env "fco:python rdf:type fco:topic" `shouldReturn` 9
+        parseTriple env "fco:haskell rdfs:label \"Haskell\"" `shouldReturn` 10
+        parseTriple env "fco:haskell fco:priority 1" `shouldReturn` 11
 
     it "queries the triple store" $ do
         env <- setupEnv $ environment { envDB = db }
@@ -67,4 +69,7 @@ spec = do
             qu <- parseQuery env "fco:haskell ? ?"
             tr <- queryTriples conn qu
             mapM (showTriple env) (elems tr) 
-                `shouldReturn` ["fco:haskell rdf:type fco:topic"]
+                `shouldReturn` [
+                    "fco:haskell rdf:type fco:topic",
+                    "fco:haskell rdfs:label \"Haskell\"",
+                    "fco:haskell fco:priority 1"]

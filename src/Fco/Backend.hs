@@ -7,7 +7,7 @@ import Control.Exception (bracket)
 import Data.Char (isDigit)
 import Data.List (lookup)
 import qualified Data.Text as T
-import Data.IntMap (fromList)
+import Data.IntMap (elems, fromList)
 
 import Fco.Backend.Database (
                 Connection,
@@ -16,7 +16,7 @@ import Fco.Backend.Database (
                 addNode, getNode, queryNode,
                 addText, getText, queryText,
                 addTriple, queryTriple)
-import Fco.Backend.Database as DB
+import qualified Fco.Backend.Database as DB
 import Fco.Backend.Types (
                 DBSettings, Environment,
                 NamespaceId, 
@@ -29,6 +29,17 @@ import qualified Fco.Core.Parse as CP
 import qualified Fco.Core.Show as CS
 import Fco.Core.Types (Namespace (..), NodeName)
 import qualified Fco.Core.Types as CT
+
+
+query :: Environment -> Text -> IO [Triple]
+query env txt = do
+    withConnection (envDB env) $ \conn ->
+        parseQuery env txt
+            >>= queryTriples conn
+            >>= return . elems
+
+-- querytoCoreTriples :: Environment -> Text -> IO [CT.Triple]
+-- queryAndShow :: Environment -> Text -> IO [Text]
 
 
 -- convert (nodes and) triples to a readable representation

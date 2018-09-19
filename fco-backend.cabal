@@ -17,10 +17,13 @@ library
   hs-source-dirs:     src
   exposed-modules:    Fco.Backend
                     , Fco.Backend.Database
+                    , Fco.Backend.Service
                     , Fco.Backend.Types
   build-depends:      base >= 4.7 && < 5
                     , basic-prelude
+                    , binary
                     , containers
+                    , distributed-process
                     , text
                     -- , postgresql-simple
                     -- , hasql

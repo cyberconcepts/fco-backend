@@ -31,15 +31,21 @@ import Fco.Core.Types (Namespace (..), NodeName)
 import qualified Fco.Core.Types as CT
 
 
-query :: Environment -> Text -> IO [Triple]
-query env txt = do
-    withConnection (envDB env) $ \conn ->
-        parseQuery env txt
-            >>= queryTriples conn
-            >>= return . elems
+-- high-level query functions
 
--- querytoCoreTriples :: Environment -> Text -> IO [CT.Triple]
--- queryAndShow :: Environment -> Text -> IO [Text]
+query :: Environment -> CT.Query -> IO [CT.Triple]
+query env query = 
+    withConnection (envDB env) $ \conn ->
+        fromCoreQuery env query >>=
+        queryTriples conn >>=
+        mapM (toCoreTriple env) . elems
+
+queryTxt :: Environment -> Text -> IO [Text]
+queryTxt env txt = do
+    withConnection (envDB env) $ \conn ->
+        parseQuery env txt >>= 
+        queryTriples conn >>= 
+        mapM (showTriple env) . elems
 
 
 -- convert (nodes and) triples to a readable representation

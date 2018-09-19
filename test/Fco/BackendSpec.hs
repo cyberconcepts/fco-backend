@@ -9,7 +9,7 @@ import Data.IntMap (elems, fromList)
 
 import Fco.Backend (
             getOrCreateNode, getOrCreateTriple, 
-            parseQuery, parseTriple, query, queryTriples,
+            parseQuery, parseTriple, query, queryTxt, queryTriples,
             setupEnv,
             showTriple, withConnection)
 import Fco.Backend.Types (
@@ -65,17 +65,17 @@ spec = do
 
     it "queries the triple store" $ do
         env <- setupEnv $ environment { envDB = db }
-        (query env "fco:haskell ? ?" >>= mapM (showTriple env)) `shouldReturn` [
+        queryTxt env "fco:haskell ? ?" `shouldReturn` [
                 "fco:haskell rdf:type fco:topic",
                 "fco:haskell rdfs:label \"Haskell\"",
                 "fco:haskell fco:priority 1"]
-        (query env "? rdfs:label ?" >>= mapM (showTriple env)) `shouldReturn` [
+        queryTxt env "? rdfs:label ?" `shouldReturn` [
                 "fco:haskell rdfs:label \"Haskell\""]
-        (query env "? ? 1" >>= mapM (showTriple env)) `shouldReturn` [
+        queryTxt env "? ? 1" `shouldReturn` [
                 "fco:haskell fco:priority 1"]
-        (query env "? ? \"Haskell\"" >>= mapM (showTriple env)) `shouldReturn` [
+        queryTxt env "? ? \"Haskell\"" `shouldReturn` [
                 "fco:haskell rdfs:label \"Haskell\""]
-        (query env "? rdf:type fco:topic" >>= mapM (showTriple env)) `shouldReturn` [
+        queryTxt env "? rdf:type fco:topic" `shouldReturn` [
                 "fco:haskell rdf:type fco:topic",
                 "fco:javascript rdf:type fco:topic",
                 "fco:python rdf:type fco:topic"]

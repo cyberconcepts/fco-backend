@@ -1,6 +1,6 @@
 module Main where
 
-import Fco.Backend.Database
+import Fco.Backend.Demo (run)
 
 main :: IO ()
-main = print "Hello World"
+main = run

@@ -5,7 +5,9 @@
 --
 --
 
-module Fco.Backend.Service (setupBackend) where
+module Fco.Backend.Service (
+        Request (..), Response (..), ResponseChan,
+        setupBackend) where
 
 import BasicPrelude
 import qualified Data.Text as T
@@ -18,7 +20,7 @@ import Control.Distributed.Process (
     Process, ReceivePort, SendPort,
     newChan, sendChan, spawnLocal)
 
-import Fco.Backend (query)
+import Fco.Backend (query, storeTriple)
 import Fco.Backend.Types (Environment)
 import Fco.Core.Messaging (
     Channel, CtlChan, Message, MsgHandler, Notification (RequestQuit),
@@ -38,6 +40,8 @@ data Response = Response ServiceId [CT.Triple]
 instance Binary Response
 instance Message Response
 
+type ResponseChan = Channel Response
+
 
 setupBackend :: ParentId -> Environment ->
                 Process (SendPort Request, ServiceId)
@@ -53,5 +57,6 @@ reqHandler svcId env (Query client qu) = do
     tr <- liftIO $ query env qu
     sendChan client $ Response svcId tr
     return $ Just env
-
-reqHandler svcId env (Update triple) = undefined
+reqHandler svcId env (Update triple) = do
+    liftIO $ storeTriple env triple
+    return $ Just env

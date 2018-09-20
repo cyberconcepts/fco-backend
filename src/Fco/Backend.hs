@@ -31,7 +31,7 @@ import Fco.Core.Types (Namespace (..), NodeName)
 import qualified Fco.Core.Types as CT
 
 
--- high-level query functions
+-- high-level functions using core triple format
 
 query :: Environment -> CT.Query -> IO [CT.Triple]
 query env query = 
@@ -41,11 +41,21 @@ query env query =
         mapM (toCoreTriple env) . elems
 
 queryTxt :: Environment -> Text -> IO [Text]
-queryTxt env txt = do
+queryTxt env txt =
+    query env (CP.parseQuery (Namespace "") txt) >>=
+    return . map CS.showTriple
+
+
+storeTriple :: Environment -> CT.Triple -> IO ()
+storeTriple env ct = do
+    Triple s p o <- fromCoreTriple env ct
     withConnection (envDB env) $ \conn ->
-        parseQuery env txt >>= 
-        queryTriples conn >>= 
-        mapM (showTriple env) . elems
+        getOrCreateTriple conn s p o
+    return ()
+
+storeTriples :: Environment -> [CT.Triple] -> IO ()
+storeTriples env cts = 
+    mapM (storeTriple env) cts >> return ()
 
 
 -- convert (nodes and) triples to a readable representation

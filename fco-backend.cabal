@@ -1,5 +1,5 @@
 name:                 fco-backend
-version:              0.1.0.0
+version:              0.1.0.1
 synopsis:             fco backend modules, providing persistence and a native Haskell API
 description:          Please see README.md
 homepage:             http://github.com/cyberconcepts/fco-backend

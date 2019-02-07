@@ -28,6 +28,38 @@ import Fco.Core.Messaging (
     defaultService, setupService,)
 import qualified Fco.Core.Types as CT
 
+import qualified Fco.Core.Service as Svc
+import Fco.Core.Service (
+    defaultCtlHandler, defaultListener, dummyHandler, startService)
+
+
+-- new implementation, using Fco.Core.ServiceId
+
+type BackendService = Svc.Service BackendRequest
+
+type BackendRespChannel = Svc.Channel BackendResponse
+
+data BackendRequest = BackendQuery BackendRespChannel CT.Query
+                    | BackendUpdate CT.Triple
+
+newtype BackendResponse = BackendResponse [CT.Triple]
+
+
+startBackendSvc :: Environment -> IO BackendService
+startBackendSvc env = startService defaultListener backendHandler env
+
+backendHandler :: Svc.MsgHandler Environment BackendRequest
+backendHandler env (Svc.Message (BackendQuery rchannel qu)) = do
+    tr <- query env qu
+    Svc.sendChan rchannel $ Svc.Message (BackendResponse tr)
+    return $ Just env
+backendHandler env (Svc.Message (BackendUpdate tr)) = do
+    storeTriple env tr
+    return $ Just env
+backendHandler env msg = defaultCtlHandler env msg
+
+
+-- legacy stuff, using distributed-process
 
 data Request = Query (SendPort Response) CT.Query
                 | Update CT.Triple

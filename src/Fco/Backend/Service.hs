@@ -6,8 +6,11 @@
 --
 
 module Fco.Backend.Service (
-        Request (..), Response (..), ResponseChan,
-        setupBackend) where
+    BackendRequest (..), BackendRespChannel, BackendResponse (..), 
+    BackendService, 
+    startBackendSvc,
+    Request (..), Response (..), ResponseChan,
+    setupBackend) where
 
 import BasicPrelude
 import qualified Data.Text as T

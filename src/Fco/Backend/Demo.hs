@@ -16,10 +16,15 @@ import Control.Monad.Extra (whileM)
 
 import Fco.Backend (setupEnv)
 import Fco.Backend.Service (
+    BackendRequest (..), BackendRespChannel, BackendResponse (..),
+    BackendService, 
+    startBackendSvc,
     Request (..), Response (..), ResponseChan,
     setupBackend)
 import Fco.Backend.Types (dbSettings, dbName, envDB, environment)
-import Fco.Core.Config (setupConfigDef)
+import Fco.Core.Config (
+    startConfigSvcDefault,
+    setupConfigDef)
 import Fco.Core.Console (setupConsole)
 import Fco.Core.Messaging (
     CtlChan, CtlMsg (DoQuit, InfoMsg), 
@@ -29,8 +34,37 @@ import qualified Fco.Core.Parse as CP
 import qualified Fco.Core.Show as CS
 import Fco.Core.Types (Namespace (..))
 
+import qualified Fco.Core.Service as Svc
+import Fco.Core.Service (Channel,
+    defaultCtlHandler, defaultListener, dummyHandler, startService)
 
--- message handlers
+
+-- new implementation, using Fco.Core.ServiceId
+
+inpHandler :: BackendService -> BackendRespChannel -> Text -> IO Bool
+inpHandler backend respChan txt = do
+    Svc.send backend $
+            Svc.Message (BackendQuery respChan (CP.parseQuery (Namespace "") txt))
+    return True
+
+responseHandler :: Svc.Service Text -> BackendResponse -> IO Bool
+responseHandler conout (BackendResponse triples) = do
+    Svc.send conout $ Svc.Message (unlines (map CS.showTriple triples))
+    return True
+
+runBackend :: IO ()
+runBackend = do
+    configSvc <- startConfigSvcDefault
+    let db = dbSettings { dbName = "fco_test" }
+    env <- setupEnv $ environment { envDB = db }
+    backendSvc <- startBackendSvc env
+    -- TODO: start console input and output services
+    -- TODO: create channels for receiving messages from console and backend
+    -- TODO: loop: receive and handle messages
+    return ()
+
+
+-- legacy stuff, using distributed-process
 
 handleNotif :: Notification -> Process Bool
 handleNotif (RequestQuit service) = return False
@@ -46,8 +80,6 @@ handleBeResp port (Response svcId triples) =
     sendChan port (unlines (map CS.showTriple triples))
     >> return True
 
-
--- application
 
 run :: IO ()
 run = 

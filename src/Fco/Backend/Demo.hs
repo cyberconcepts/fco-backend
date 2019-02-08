@@ -35,8 +35,11 @@ import qualified Fco.Core.Show as CS
 import Fco.Core.Types (Namespace (..))
 
 import qualified Fco.Core.Service as Svc
-import Fco.Core.Service (Channel,
-    defaultCtlHandler, defaultListener, dummyHandler, startService)
+import Fco.Core.Service (Channel, HandledChannel (..),
+    conOutHandler,
+    defaultCtlHandler, defaultListener, dummyHandler, 
+    receiveChanAny,
+    startService)
 
 
 -- new implementation, using Fco.Core.ServiceId
@@ -54,13 +57,17 @@ responseHandler conout (BackendResponse triples) = do
 
 runBackend :: IO ()
 runBackend = do
+    conRecvChan <- Svc.newChan
+    backendRespChan <- Svc.newChan
     configSvc <- startConfigSvcDefault
     let db = dbSettings { dbName = "fco_test" }
     env <- setupEnv $ environment { envDB = db }
     backendSvc <- startBackendSvc env
-    -- TODO: start console input and output services
-    -- TODO: create channels for receiving messages from console and backend
-    -- TODO: loop: receive and handle messages
+    conInSvc <- startService (Svc.conIn conRecvChan) dummyHandler ()
+    conOutSvc <- startService defaultListener conOutHandler ()
+    whileM $ receiveChanAny [
+        HandledChannel conRecvChan (inpHandler backendSvc backendRespChan),
+        HandledChannel backendRespChan (responseHandler conOutSvc)]
     return ()
 
 

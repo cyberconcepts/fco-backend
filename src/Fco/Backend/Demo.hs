@@ -44,19 +44,21 @@ import Fco.Core.Service (Channel, HandledChannel (..),
 
 -- new implementation, using Fco.Core.ServiceId
 
-inpHandler :: BackendService -> BackendRespChannel -> Text -> IO Bool
-inpHandler backend respChan txt = do
+inpHandler :: BackendService -> BackendRespChannel -> Svc.Message Text -> IO Bool
+inpHandler backend respChan (Svc.Message txt) = do
     Svc.send backend $
             Svc.Message (BackendQuery respChan (CP.parseQuery (Namespace "") txt))
     return True
+inpHandler backend respChan (Svc.QuitMsg) = 
+    (Svc.send backend Svc.QuitMsg) >> return False
 
-responseHandler :: Svc.Service Text -> BackendResponse -> IO Bool
-responseHandler conout (BackendResponse triples) = do
+responseHandler :: Svc.Service Text -> Svc.Message BackendResponse -> IO Bool
+responseHandler conout (Svc.Message (BackendResponse triples)) = do
     Svc.send conout $ Svc.Message (unlines (map CS.showTriple triples))
     return True
 
-runBackend :: IO ()
-runBackend = do
+run :: IO ()
+run = do
     conRecvChan <- Svc.newChan
     backendRespChan <- Svc.newChan
     configSvc <- startConfigSvcDefault
@@ -88,8 +90,8 @@ handleBeResp port (Response svcId triples) =
     >> return True
 
 
-run :: IO ()
-run = 
+run_x :: IO ()
+run_x = 
   runMainProcess $ do
     (self, notifRecv) <- newChan :: Process NotifChan
     (cfgReqSend, cfgId) <- setupConfigDef self

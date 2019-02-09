@@ -18,9 +18,8 @@ import Data.IntMap (elems)
 import Fco.Backend (query, storeTriple)
 import Fco.Backend.Types (Environment)
 import qualified Fco.Core.Types as CT
-
 import Fco.Core.Service (
-    Channel (..), Message (..), MsgHandler (..), Service (..),
+    Channel, Message (..), MsgHandler, Service,
     defaultCtlHandler, defaultListener, dummyHandler, sendChan, startService)
 
 

@@ -1,5 +1,5 @@
 name:                 fco-backend
-version:              0.1.0.1
+version:              0.2.0.2
 synopsis:             fco backend modules, providing persistence and a native Haskell API
 description:          Please see README.md
 homepage:             http://github.com/cyberconcepts/fco-backend
@@ -7,7 +7,7 @@ license:              BSD3
 license-file:         LICENSE
 author:               functionalconcepts.org team
 maintainer:           team@functionalconcepts.org
-copyright:            Copyright 2017 functionalconcepts.org team
+copyright:            Copyright 2019 functionalconcepts.org team
 category:             Semantic Web
 build-type:           Simple
 -- extra-source-files:
@@ -22,9 +22,7 @@ library
                     , Fco.Backend.Types
   build-depends:      base >= 4.7 && < 5
                     , basic-prelude
-                    , binary
                     , containers
-                    , distributed-process
                     , extra
                     , text
                     -- , postgresql-simple

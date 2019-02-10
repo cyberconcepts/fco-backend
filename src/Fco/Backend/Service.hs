@@ -6,7 +6,7 @@
 --
 
 module Fco.Backend.Service (
-    BackendRequest (..), BackendRespChannel, BackendResponse (..), 
+    Request (..), RespChannel, Response (..), 
     BackendService, 
     startBackendSvc) where
 
@@ -23,25 +23,25 @@ import Fco.Core.Service (
     defaultCtlHandler, defaultListener, dummyHandler, sendChan, startService)
 
 
-type BackendService = Service BackendRequest
+type BackendService = Service Request
 
-type BackendRespChannel = Channel BackendResponse
+type RespChannel = Channel Response
 
-data BackendRequest = BackendQuery BackendRespChannel CT.Query
-                    | BackendUpdate CT.Triple
+data Request = Query RespChannel CT.Query
+             | Update CT.Triple
 
-newtype BackendResponse = BackendResponse [CT.Triple]
+newtype Response = Response [CT.Triple]
 
 
 startBackendSvc :: Environment -> IO BackendService
 startBackendSvc env = startService defaultListener backendHandler env
 
-backendHandler :: MsgHandler Environment BackendRequest
-backendHandler env (Message (BackendQuery rchannel qu)) = do
+backendHandler :: MsgHandler Environment Request
+backendHandler env (Message (Query rchannel qu)) = do
     tr <- query env qu
-    sendChan rchannel $ Message (BackendResponse tr)
+    sendChan rchannel $ Message (Response tr)
     return $ Just env
-backendHandler env (Message (BackendUpdate tr)) = do
+backendHandler env (Message (Update tr)) = do
     storeTriple env tr
     return $ Just env
 backendHandler env msg = defaultCtlHandler env msg

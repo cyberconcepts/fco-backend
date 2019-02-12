@@ -15,10 +15,11 @@ import qualified Fco.Backend.Service as BE
 import Fco.Backend.Service (BackendService, startBackendSvc)
 import Fco.Backend.Types (dbSettings, dbName, envDB, environment)
 import Fco.Core.Config (startConfigSvcDefault)
+import Fco.Core.Console (conIn, conOutHandler)
 import qualified Fco.Core.Parse as CP
 import Fco.Core.Service (
     HandledChannel (..), Message (..), Service (..),
-    conIn, conOutHandler, defaultListener, dummyHandler, 
+    defaultListener, dummyHandler, 
     newChan, receiveChanAny, send, startService)
 import qualified Fco.Core.Show as CS
 import Fco.Core.Types (Namespace (..))

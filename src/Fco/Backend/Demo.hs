@@ -18,25 +18,26 @@ import Fco.Core.Config (startConfigSvcDefault)
 import Fco.Core.Console (conIn, conOutHandler)
 import qualified Fco.Core.Parse as CP
 import Fco.Core.Service (
-    HandledChannel (..), Message (..), Service (..),
+    HandledChannel (..), Message (..), MsgHandler, Service (..),
     defaultListener, dummyHandler, 
     newChan, receiveChanAny, send, startService)
 import qualified Fco.Core.Show as CS
 import Fco.Core.Types (Namespace (..))
+import Fco.Core.Util (whileDataM)
 
 
-inpHandler :: BackendService -> BE.RespChannel -> Message Text -> IO Bool
-inpHandler backend respChan (Message txt) = do
+inpHandler :: BackendService -> BE.RespChannel -> MsgHandler st Text
+inpHandler backend respChan state (Message txt) = do
     send backend $
             Message (BE.Query respChan (CP.parseQuery (Namespace "") txt))
-    return True
-inpHandler backend respChan (QuitMsg) = 
-    (send backend QuitMsg) >> return False
+    return $ Just state
+inpHandler backend respChan _ QuitMsg = 
+    (send backend QuitMsg) >> return Nothing
 
-responseHandler :: Service Text -> Message BE.Response -> IO Bool
-responseHandler conout (Message (BE.Response triples)) = do
+responseHandler :: Service Text -> MsgHandler st BE.Response
+responseHandler conout state (Message (BE.Response triples)) = do
     send conout $ Message (unlines (map CS.showTriple triples))
-    return True
+    return $ Just state
 
 
 run :: IO ()
@@ -49,7 +50,9 @@ run = do
     backendSvc <- startBackendSvc env
     conInSvc <- startService (conIn conRecvChan) dummyHandler ()
     conOutSvc <- startService defaultListener conOutHandler ()
-    whileM $ receiveChanAny [
-        HandledChannel conRecvChan (inpHandler backendSvc backendRespChan),
-        HandledChannel backendRespChan (responseHandler conOutSvc)]
+    whileDataM 
+        (\state -> receiveChanAny state [
+          HandledChannel conRecvChan (inpHandler backendSvc backendRespChan),
+          HandledChannel backendRespChan (responseHandler conOutSvc)])
+        ()
 

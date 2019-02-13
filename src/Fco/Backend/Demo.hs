@@ -19,11 +19,10 @@ import Fco.Core.Console (conIn, conOutHandler)
 import qualified Fco.Core.Parse as CP
 import Fco.Core.Service (
     HandledChannel (..), Message (..), MsgHandler, Service (..),
-    defaultListener, dummyHandler, 
-    newChan, receiveChanAny, send, startService)
+    defaultListener, dummyHandler, multiListener,
+    newChan, send, startService)
 import qualified Fco.Core.Show as CS
 import Fco.Core.Types (Namespace (..))
-import Fco.Core.Util (whileDataM)
 
 
 inpHandler :: BackendService -> BE.RespChannel -> MsgHandler st Text
@@ -35,8 +34,8 @@ inpHandler backend respChan _ QuitMsg =
     (send backend QuitMsg) >> return Nothing
 
 responseHandler :: Service Text -> MsgHandler st BE.Response
-responseHandler conout state (Message (BE.Response triples)) = do
-    send conout $ Message (unlines (map CS.showTriple triples))
+responseHandler out state (Message (BE.Response triples)) = do
+    send out $ Message (unlines (map CS.showTriple triples))
     return $ Just state
 
 
@@ -47,12 +46,11 @@ run = do
     configSvc <- startConfigSvcDefault
     let db = dbSettings { dbName = "fco_test" }
     env <- setupEnv $ environment { envDB = db }
-    backendSvc <- startBackendSvc env
+    backendSvc <- startBackendSvc env --configSvc
     conInSvc <- startService (conIn conRecvChan) dummyHandler ()
     conOutSvc <- startService defaultListener conOutHandler ()
-    whileDataM 
-        (\state -> receiveChanAny state [
+    multiListener [
           HandledChannel conRecvChan (inpHandler backendSvc backendRespChan),
-          HandledChannel backendRespChan (responseHandler conOutSvc)])
+          HandledChannel backendRespChan (responseHandler conOutSvc)]
         ()
 

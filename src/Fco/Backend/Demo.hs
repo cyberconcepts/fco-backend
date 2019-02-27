@@ -12,7 +12,7 @@ import Control.Monad.Extra (whileM)
 
 import Control.Concurrent.Actor (
     Behaviour (..), ControlMsg (..), Mailbox, MsgHandler, StdBoxes (..),
-    defActor, defControlHandler, mailbox, send, 
+    defActor, mailbox, send, 
     spawnActor, spawnStdActor, stdBoxes)
 import Control.Concurrent.Actor.Config (spawnConfigDef)
 import Control.Concurrent.Actor.Console (conInLoop, conOutHandler)
@@ -53,7 +53,7 @@ run = do
     spawnActor (conInLoop self) [] ()
     outBoxes <- spawnStdActor conOutHandler ()
     defActor [
-        Behaviour (controlBox self) (ctlHandler outBoxes reqBoxes),
-        Behaviour (messageBox self) (inpHandler (messageBox reqBoxes) respBox),
-        Behaviour respBox (responseHandler (messageBox outBoxes))
+        Behv (controlBox self) (ctlHandler outBoxes reqBoxes),
+        Behv (messageBox self) (inpHandler (messageBox reqBoxes) respBox),
+        Behv respBox (responseHandler (messageBox outBoxes))
       ] ()

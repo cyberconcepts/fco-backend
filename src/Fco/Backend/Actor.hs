@@ -15,7 +15,7 @@ import qualified Data.Text as T
 import Data.IntMap (elems)
 
 import Control.Concurrent.Actor (
-    Mailbox, Message (..), MsgHandler, StdBoxes,
+    Mailbox, MsgHandler, StdBoxes,
     send, spawnStdActor)
 import Fco.Backend (query, storeTriple)
 import Fco.Backend.Types (Environment)
@@ -31,11 +31,11 @@ spawnBackend :: Environment -> IO (StdBoxes Request)
 spawnBackend env = spawnStdActor backendHandler env
 
 backendHandler :: MsgHandler Environment Request
-backendHandler env (Message (Query respbox qu)) = do
+backendHandler env (Query respbox qu) = do
     tr <- query env qu
-    send respbox $ Message (Response tr)
+    send respbox $ Response tr
     return $ Just env
-backendHandler env (Message (Update tr)) = do
+backendHandler env (Update tr) = do
     storeTriple env tr
     return $ Just env
 

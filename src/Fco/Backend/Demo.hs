@@ -11,7 +11,7 @@ import BasicPrelude
 import Control.Monad.Extra (whileM)
 
 import Control.Concurrent.Actor (
-    Behaviour (..), ControlMsg (..), Mailbox, Message (..), MsgHandler, StdBoxes (..),
+    Behaviour (..), ControlMsg (..), Mailbox, MsgHandler, StdBoxes (..),
     defActor, defControlHandler, mailbox, send, 
     spawnActor, spawnStdActor, stdBoxes)
 import Control.Concurrent.Actor.Config (spawnConfigDef)
@@ -25,9 +25,9 @@ import Fco.Core.Types (Namespace (..))
 
 
 inpHandler :: Mailbox Request -> Mailbox Response -> MsgHandler st Text
-inpHandler reqBox respBox state (Message txt) = do
+inpHandler reqBox respBox state txt = do
     send reqBox $
-            Message (Query respBox (CP.parseQuery (Namespace "") txt))
+            Query respBox (CP.parseQuery (Namespace "") txt)
     return $ Just state
 
 ctlHandler :: (StdBoxes Text) -> (StdBoxes Request) -> MsgHandler st ControlMsg
@@ -37,8 +37,8 @@ ctlHandler outBoxes reqBoxes _ msg = do
     return Nothing
 
 responseHandler :: Mailbox Text -> MsgHandler st Response
-responseHandler outbox state (Message (Response triples)) = do
-    send outbox $ Message (unlines (map CS.showTriple triples))
+responseHandler outbox state (Response triples) = do
+    send outbox $ unlines (map CS.showTriple triples)
     return $ Just state
 
 

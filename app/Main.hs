@@ -1,6 +1,6 @@
 module Main where
 
-import Fco.Backend.Demo (run)
+import Fco.Backend.Actor (demo)
 
 main :: IO ()
-main = run
+main = demo

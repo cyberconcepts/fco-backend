@@ -16,9 +16,8 @@ cabal-version:        >=1.10
 library
   hs-source-dirs:     src
   exposed-modules:    Fco.Backend
-                    , Fco.Backend.Demo
-                    , Fco.Backend.Database
                     , Fco.Backend.Actor
+                    , Fco.Backend.Database
                     , Fco.Backend.Types
   build-depends:      base >= 4.7 && < 5
                     , basic-prelude

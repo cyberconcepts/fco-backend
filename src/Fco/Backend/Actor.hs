@@ -47,7 +47,7 @@ newtype Response = Response [CT.Triple]
 
 -- | Start a backend actor 
 spawnBackend :: Environment -> IO (StdBoxes Request)
-spawnBackend env = spawnStdActor backendHandler env
+spawnBackend env = spawnStdActor [] backendHandler env
 
 backendHandler :: MsgHandler Environment Request
 backendHandler env (Query client qu) = do
@@ -73,7 +73,7 @@ demo = do
     env <- setupEnv $ environment { envDB = db }
     backend <- spawnBackend env -- TODO: use config
     spawnActor (conInActor self) [] ()
-    output <- spawnStdActor conOutHandler ()
+    output <- spawnStdActor [] conOutHandler ()
     defActor [
         Behv (controlBox self) (ctlHandler output backend),
         Behv (messageBox self) (inpHandler (messageBox backend) respBox),

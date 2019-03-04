@@ -26,7 +26,7 @@ import Data.IntMap (elems)
 
 import Control.Concurrent.Actor (
     Behaviour (..), ControlMsg (..), Mailbox, MsgHandler, StdBoxes (..),
-    defActor, mailbox, send, spawnActor, spawnStdActor, stdBoxes)
+    defListener, mailbox, send, spawnActor, spawnStdActor, stdBoxes)
 import Control.Concurrent.Actor.Config (spawnConfigDef)
 import Control.Concurrent.Actor.Console (conInActor, conOutHandler)
 
@@ -74,7 +74,7 @@ demo = do
     backend <- spawnBackend env -- TODO: use config
     spawnActor (conInActor self) [] ()
     output <- spawnStdActor [] conOutHandler ()
-    defActor [
+    defListener [
         Behv (controlBox self) (ctlHandler output backend),
         Behv (messageBox self) (inpHandler (messageBox backend) respBox),
         Behv respBox (responseHandler (messageBox output))

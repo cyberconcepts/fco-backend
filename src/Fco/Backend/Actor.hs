@@ -25,8 +25,10 @@ import Control.Monad.Extra (whileM)
 import Data.IntMap (elems)
 
 import Control.Concurrent.Actor (
+    Actor,
     Behaviour (..), ControlMsg (..), Mailbox, MsgHandler, StdBoxes (..),
-    defListener, mailbox, send, spawnActor, spawnStdActor, stdBoxes)
+    defListener, mailbox, minimalContext, runActor, send, 
+    spawnActor, spawnStdActor, stdBoxes, stdContext)
 import Control.Concurrent.Actor.Config (spawnConfigDef)
 import Control.Concurrent.Actor.Console (conInActor, conOutHandler)
 
@@ -46,16 +48,19 @@ data Request = Query (Mailbox Response) CT.Query
 newtype Response = Response [CT.Triple]
 
 -- | Start a backend actor 
-spawnBackend :: Environment -> IO (StdBoxes Request)
-spawnBackend env = spawnStdActor [] backendHandler env
+spawnBackend :: Environment -> (Actor st) (StdBoxes Request)
+spawnBackend env = do
+    boxes <- stdBoxes
+    let ctx = stdContext boxes backendHandler env []
+    spawnStdActor ctx [] backendHandler env
 
 backendHandler :: MsgHandler Environment Request
 backendHandler env (Query client qu) = do
-    tr <- query env qu
+    tr <- liftIO $ query env qu
     send client $ Response tr
     return $ Just env
 backendHandler env (Update tr) = do
-    storeTriple env tr
+    liftIO $ storeTriple env tr
     return $ Just env
 
 
@@ -65,20 +70,23 @@ backendHandler env (Update tr) = do
 --
 -- Enter '? ? ?' to get a list of all triples.
 demo :: IO ()
-demo = do
-    self <- stdBoxes
-    respBox <- mailbox
-    config <- spawnConfigDef  -- not used yet
-    let db = dbSettings { dbName = "fco_test" }
-    env <- setupEnv $ environment { envDB = db }
-    backend <- spawnBackend env -- TODO: use config
-    spawnActor (conInActor self) [] ()
-    output <- spawnStdActor [] conOutHandler ()
-    defListener [
-        Behv (controlBox self) (ctlHandler output backend),
-        Behv (messageBox self) (inpHandler (messageBox backend) respBox),
-        Behv respBox (responseHandler (messageBox output))
-      ] ()
+demo = 
+    runActor demoActor minimalContext
+  where
+    demoActor = do
+        self <- stdBoxes
+        respBox <- mailbox
+        config <- spawnConfigDef -- not used yet
+        let db = dbSettings { dbName = "fco_test" }
+        env <- liftIO $ setupEnv $ environment { envDB = db }
+        backend <- spawnBackend env -- TODO: use config
+        spawnActor minimalContext (conInActor self) [] ()
+        output <- spawnStdActor minimalContext [] conOutHandler ()
+        defListener [
+            Behv (controlBox self) (ctlHandler output backend),
+            Behv (messageBox self) (inpHandler (messageBox backend) respBox),
+            Behv respBox (responseHandler (messageBox output))
+          ] ()
 
 -- message handlers used by the demo function.
 

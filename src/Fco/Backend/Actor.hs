@@ -27,7 +27,7 @@ import Data.IntMap (elems)
 import Control.Concurrent.Actor (
     Actor,
     Behaviour (..), ControlMsg (..), Mailbox, MsgHandler, StdBoxes (..),
-    defListener, mailbox, minimalContext, runActor, send, 
+    defContext, defListener, mailbox, minimalContext, runActor, send, 
     spawnActor, spawnStdActor, stdBoxes, stdContext)
 import Control.Concurrent.Actor.Config (spawnConfigDef)
 import Control.Concurrent.Actor.Console (conInActor, conOutHandler)
@@ -48,11 +48,9 @@ data Request = Query (Mailbox Response) CT.Query
 newtype Response = Response [CT.Triple]
 
 -- | Start a backend actor 
-spawnBackend :: Environment -> (Actor st) (StdBoxes Request)
-spawnBackend env = do
-    boxes <- stdBoxes
-    let ctx = stdContext boxes backendHandler env []
-    spawnStdActor ctx [] backendHandler env
+spawnBackend ::  Environment -> IO (StdBoxes Request)
+spawnBackend env =
+    spawnStdActor backendHandler env []
 
 backendHandler :: MsgHandler Environment Request
 backendHandler env (Query client qu) = do
@@ -70,23 +68,21 @@ backendHandler env (Update tr) = do
 --
 -- Enter '? ? ?' to get a list of all triples.
 demo :: IO ()
-demo = 
-    runActor demoActor minimalContext
-  where
-    demoActor = do
-        self <- stdBoxes
-        respBox <- mailbox
-        config <- spawnConfigDef -- not used yet
-        let db = dbSettings { dbName = "fco_test" }
-        env <- liftIO $ setupEnv $ environment { envDB = db }
-        backend <- spawnBackend env -- TODO: use config
-        spawnActor minimalContext (conInActor self) [] ()
-        output <- spawnStdActor minimalContext [] conOutHandler ()
-        defListener [
+demo = do
+    self <- stdBoxes
+    respBox <- mailbox
+    config <- spawnConfigDef -- not used yet
+    let db = dbSettings { dbName = "fco_test" }
+    env <- liftIO $ setupEnv $ environment { envDB = db }
+    backend <- spawnBackend env -- TODO: use config
+    spawnActor minimalContext (conInActor self)
+    output <- spawnStdActor conOutHandler () []
+    let selfCtx = defContext () [
             Behv (controlBox self) (ctlHandler output backend),
             Behv (messageBox self) (inpHandler (messageBox backend) respBox),
             Behv respBox (responseHandler (messageBox output))
-          ] ()
+          ] []
+    runActor defListener selfCtx
 
 -- message handlers used by the demo function.
 

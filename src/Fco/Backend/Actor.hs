@@ -27,10 +27,10 @@ import Data.IntMap (elems)
 import Control.Concurrent.Actor (
     Actor,
     Behaviour (..), ControlMsg (..), Mailbox, MsgHandler, StdBoxes (..),
-    defContext, defListener, mailbox, minimalContext, runActor, send, 
+    defContext, defListener, mailbox, runActor, send, 
     spawnActor, spawnStdActor, stdBoxes, stdContext)
 import Control.Concurrent.Actor.Config (spawnConfigDef)
-import Control.Concurrent.Actor.Console (conInActor, conOutHandler)
+import Control.Concurrent.Actor.Console (spawnConIn, spawnConOut)
 
 import Fco.Backend (setupEnv, query, storeTriple)
 import Fco.Backend.Types (Environment, dbSettings, dbName, envDB, environment)
@@ -75,8 +75,8 @@ demo = do
     let db = dbSettings { dbName = "fco_test" }
     env <- liftIO $ setupEnv $ environment { envDB = db }
     backend <- spawnBackend env -- TODO: use config
-    spawnActor minimalContext (conInActor self)
-    output <- spawnStdActor conOutHandler () []
+    spawnConIn self
+    output <- spawnConOut
     let selfCtx = defContext () [
             Behv (controlBox self) (ctlHandler output backend),
             Behv (messageBox self) (inpHandler (messageBox backend) respBox),

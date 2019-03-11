@@ -27,6 +27,7 @@ import Data.IntMap (elems)
 import Control.Concurrent.Actor (
     Actor,
     Behaviour (..), ControlMsg (..), Mailbox, MsgHandler, StdBoxes (..),
+    messageBox, controlBox,
     defContext, defListener, mailbox, runActor, send, 
     spawnActor, spawnStdActor, stdBoxes, stdContext)
 import Control.Concurrent.Actor.Config (spawnConfigDef)

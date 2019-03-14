@@ -18,7 +18,7 @@ module Fco.Backend.Actor (
     demo
     ) where
 
-import BasicPrelude
+import BasicPrelude hiding (lookup)
 import qualified Data.Text as T
 
 import Control.Monad.Extra (whileM)
@@ -28,15 +28,21 @@ import Control.Concurrent.Actor (
     Actor,
     Behaviour (..), ControlMsg (..), Mailbox, MsgHandler, StdBoxes (..),
     messageBox, controlBox,
-    defContext, defListener, mailbox, runActor, send, 
+    defContext, defListener, mailbox, minimalContext,
+    receiveMailbox, runActor, send, 
     spawnActor, spawnStdActor, stdBoxes, stdContext)
-import Control.Concurrent.Actor.Config (spawnConfigDef)
+import Control.Concurrent.Actor.Config (
+    ConfigRequest (..), ConfigResponse (..),
+    spawnConfigDef)
 import Control.Concurrent.Actor.Console (spawnConIn, spawnConOut)
 
 import Fco.Backend (setupEnv, query, storeTriple)
-import Fco.Backend.Types (Environment, dbSettings, dbName, envDB, environment)
+import Fco.Backend.Types (
+    Environment, 
+    credentials, dbSettings, dbName, envDB, environment)
 import qualified Fco.Core.Parse as CP
 import qualified Fco.Core.Show as CS
+import Fco.Core.Struct (lookup)
 import qualified Fco.Core.Types as CT
 import Fco.Core.Types (Namespace (..))
 
@@ -49,8 +55,16 @@ data Request = Query (Mailbox Response) CT.Query
 newtype Response = Response [CT.Triple]
 
 -- | Start a backend actor 
-spawnBackend ::  Environment -> IO (StdBoxes Request)
-spawnBackend env =
+spawnBackend ::  StdBoxes ConfigRequest -> IO (StdBoxes Request)
+spawnBackend config = do
+    cfgResp <- mailbox
+    ConfigResponse (_, cfg) <- runActor (do
+        send (messageBox  config) (ConfigQuery cfgResp "backend-pgsql")
+        receiveMailbox cfgResp) minimalContext
+    let db = dbSettings { dbName = lookup "dbname" cfg,
+                          credentials = (lookup "dbuser" cfg, 
+                                         lookup "dbpassword" cfg) }
+    env <- liftIO $ setupEnv $ environment { envDB = db }
     spawnStdActor backendHandler env []
 
 backendHandler :: MsgHandler Environment Request
@@ -72,14 +86,12 @@ demo :: IO ()
 demo = do
     self <- stdBoxes
     respBox <- mailbox
-    config <- spawnConfigDef -- not used yet
-    let db = dbSettings { dbName = "fco_test" }
-    env <- liftIO $ setupEnv $ environment { envDB = db }
-    backend <- spawnBackend env -- TODO: use config
+    config <- spawnConfigDef
+    backend <- spawnBackend config
     spawnConIn self
     output <- spawnConOut
     let selfCtx = defContext () [
-            Behv (controlBox self) (ctlHandler output backend),
+            Behv (controlBox self) (ctlHandler config backend output),
             Behv (messageBox self) (inpHandler (messageBox backend) respBox),
             Behv respBox (responseHandler (messageBox output))
           ] []
@@ -93,10 +105,12 @@ inpHandler reqBox respBox state txt = do
             Query respBox (CP.parseQuery (Namespace "") txt)
     return $ Just state
 
-ctlHandler :: (StdBoxes Text) -> (StdBoxes Request) -> MsgHandler st ControlMsg
-ctlHandler outBoxes reqBoxes _ msg = do
-    send (controlBox outBoxes) msg
+ctlHandler :: StdBoxes ConfigRequest -> StdBoxes Request -> StdBoxes Text
+            -> MsgHandler st ControlMsg
+ctlHandler cfgBoxes reqBoxes outBoxes _ msg = do
+    send (controlBox cfgBoxes) msg
     send (controlBox reqBoxes) msg
+    send (controlBox outBoxes) msg
     return Nothing
 
 responseHandler :: Mailbox Text -> MsgHandler st Response

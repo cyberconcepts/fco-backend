@@ -27,7 +27,7 @@ import Data.IntMap (elems)
 import Control.Concurrent.Actor (
     Actor,
     Behaviour (..), ControlMsg (..), Mailbox, MsgHandler, StdBoxes (..),
-    messageBox, controlBox,
+    call, messageBox, controlBox,
     defContext, defListener, mailbox, minimalContext,
     receiveMailbox, runActor, send, 
     spawnActor, spawnStdActor, stdBoxes, stdContext)
@@ -48,7 +48,7 @@ import Fco.Core.Types (Namespace (..))
 
 
 -- | A message used to query or update the backend.
-data Request = Query (Mailbox Response) CT.Query
+data Request = Query CT.Query (Mailbox Response)
              | Update CT.Triple
 
 -- | The response message type as returned (sent back) by the backend actor.
@@ -57,18 +57,15 @@ newtype Response = Response [CT.Triple]
 -- | Start a backend actor 
 spawnBackend ::  StdBoxes ConfigRequest -> IO (StdBoxes Request)
 spawnBackend config = do
-    cfgResp <- mailbox
-    ConfigResponse (_, cfg) <- runActor (do
-        send (messageBox  config) (ConfigQuery cfgResp "backend-pgsql")
-        receiveMailbox cfgResp) minimalContext
+    ConfigResponse (_, cfg) <- call config (ConfigQuery "backend-pgsql")
     let db = dbSettings { dbName = lookup "dbname" cfg,
                           credentials = (lookup "dbuser" cfg, 
                                          lookup "dbpassword" cfg) }
-    env <- liftIO $ setupEnv $ environment { envDB = db }
+    env <- setupEnv $ environment { envDB = db }
     spawnStdActor backendHandler env []
 
 backendHandler :: MsgHandler Environment Request
-backendHandler env (Query client qu) = do
+backendHandler env (Query qu client) = do
     tr <- liftIO $ query env qu
     send client $ Response tr
     return $ Just env
@@ -102,7 +99,7 @@ demo = do
 inpHandler :: Mailbox Request -> Mailbox Response -> MsgHandler st Text
 inpHandler reqBox respBox state txt = do
     send reqBox $
-            Query respBox (CP.parseQuery (Namespace "") txt)
+            Query (CP.parseQuery (Namespace "") txt) respBox
     return $ Just state
 
 ctlHandler :: StdBoxes ConfigRequest -> StdBoxes Request -> StdBoxes Text

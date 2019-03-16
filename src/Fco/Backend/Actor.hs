@@ -25,12 +25,11 @@ import Control.Monad.Extra (whileM)
 import Data.IntMap (elems)
 
 import Control.Concurrent.Actor (
-    Actor,
-    Behaviour (..), ControlMsg (..), Mailbox, MsgHandler, StdBoxes (..),
-    call, messageBox, controlBox,
-    defContext, defListener, mailbox, minimalContext,
-    receiveMailbox, runActor, send, 
-    spawnActor, spawnStdActor, stdBoxes, stdContext)
+    Actor, Behaviour (..), ControlMsg (..), Mailbox, Mailboxes, MsgHandler, 
+    StdBoxes (..),
+    messageBox, controlBox, 
+    call, defContext, defListener, mailbox, minimalContext, 
+    runActor, send, spawnStdActor, stdBehvs, stdBoxes)
 import Control.Concurrent.Actor.Config (
     ConfigRequest (..), ConfigResponse (..),
     spawnConfigDef)
@@ -87,11 +86,11 @@ demo = do
     backend <- spawnBackend config
     spawnConIn self
     output <- spawnConOut
-    let selfCtx = defContext () [
-            Behv (controlBox self) (ctlHandler config backend output),
-            Behv (messageBox self) (inpHandler (messageBox backend) respBox),
-            Behv respBox (responseHandler (messageBox output))
-          ] []
+    let behvs = stdBehvs self 
+                         (inpHandler (messageBox backend) respBox)
+                         [Behv respBox (responseHandler (messageBox output))]
+        children = [c config, c backend, c output] where c = controlBox
+        selfCtx = defContext () behvs children
     runActor defListener selfCtx
 
 -- message handlers used by the demo function.
@@ -101,14 +100,6 @@ inpHandler reqBox respBox state txt = do
     send reqBox $
             Query (CP.parseQuery (Namespace "") txt) respBox
     return $ Just state
-
-ctlHandler :: StdBoxes ConfigRequest -> StdBoxes Request -> StdBoxes Text
-            -> MsgHandler st ControlMsg
-ctlHandler cfgBoxes reqBoxes outBoxes _ msg = do
-    send (controlBox cfgBoxes) msg
-    send (controlBox reqBoxes) msg
-    send (controlBox outBoxes) msg
-    return Nothing
 
 responseHandler :: Mailbox Text -> MsgHandler st Response
 responseHandler outbox state (Response triples) = do

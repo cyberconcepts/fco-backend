@@ -28,8 +28,8 @@ import Control.Concurrent.Actor (
     Actor, Behaviour (..), ControlMsg (..), Mailbox, Mailboxes, MsgHandler, 
     StdBoxes (..),
     messageBox, controlBox, 
-    call, defContext, defListener, mailbox, minimalContext, 
-    runActor, send, spawnStdActor, stdBehvs, stdBoxes)
+    call, ctxPut, defContext, defListener, mailbox, minimalContext, 
+    runActor, send, setStdContext, spawnStdActor, stdBehvs, stdBoxes)
 import Control.Concurrent.Actor.Config (
     ConfigRequest (..), ConfigResponse (..),
     spawnConfigDef)
@@ -54,14 +54,16 @@ data Request = Query CT.Query (Mailbox Response)
 newtype Response = Response [CT.Triple]
 
 -- | Start a backend actor 
-spawnBackend ::  StdBoxes ConfigRequest -> IO (StdBoxes Request)
+spawnBackend ::  StdBoxes ConfigRequest -> Actor st (StdBoxes Request)
 spawnBackend config = do
     ConfigResponse (_, cfg) <- call config (ConfigQuery "backend-pgsql")
     let db = dbSettings { dbName = lookup "dbname" cfg,
                           credentials = (lookup "dbuser" cfg, 
                                          lookup "dbpassword" cfg) }
-    env <- setupEnv $ environment { envDB = db }
-    spawnStdActor backendHandler env []
+    env <- liftIO $ setupEnv $ environment { envDB = db }
+    boxes <- spawnStdActor backendHandler env []
+    -- TODO: append control box to children
+    return boxes
 
 backendHandler :: MsgHandler Environment Request
 backendHandler env (Query qu client) = do
@@ -79,19 +81,21 @@ backendHandler env (Update tr) = do
 --
 -- Enter '? ? ?' to get a list of all triples.
 demo :: IO ()
-demo = do
-    self <- stdBoxes
-    respBox <- mailbox
-    config <- spawnConfigDef
-    backend <- spawnBackend config
-    spawnConIn self
-    output <- spawnConOut
-    let behvs = stdBehvs self 
-                         (inpHandler (messageBox backend) respBox)
-                         [Behv respBox (responseHandler (messageBox output))]
-        children = [c config, c backend, c output] where c = controlBox
-        selfCtx = defContext () behvs children
-    runActor defListener selfCtx
+demo = runActor act minimalContext where 
+  act = do
+      self <- stdBoxes
+      respBox <- mailbox
+      config <- spawnConfigDef
+      backend <- spawnBackend config
+      spawnConIn self
+      output <- spawnConOut
+      let behvs = stdBehvs self 
+                           (inpHandler (messageBox backend) respBox)
+                           [Behv respBox (responseHandler (messageBox output))]
+          children = [c config, c backend, c output] where c = controlBox
+          selfCtx = defContext () behvs children
+      ctxPut selfCtx 
+      defListener
 
 -- message handlers used by the demo function.
 

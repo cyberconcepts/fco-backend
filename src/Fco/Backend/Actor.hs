@@ -25,11 +25,12 @@ import Control.Monad.Extra (whileM)
 import Data.IntMap (elems)
 
 import Control.Concurrent.Actor (
-    Actor, Behaviour (..), ControlMsg (..), Mailbox, Mailboxes, MsgHandler, 
-    StdBoxes (..),
+    Actor, Behaviour (..), ControlMsg (..), Mailbox, Mailboxes, 
+    MsgHandler, StdBoxes (..),
     messageBox, controlBox, 
-    call, ctxPut, defContext, defListener, mailbox, minimalContext, 
-    runActor, send, setStdContext, spawnStdActor, stdBehvs, stdBoxes)
+    act_children, call, ctxGets, ctxPut, defContext, defListener, 
+    mailbox, minimalContext, updateContext,
+    runActor, send, spawnStdActor, stdBehvs, stdBoxes)
 import Control.Concurrent.Actor.Config (
     ConfigRequest (..), ConfigResponse (..),
     spawnConfigDef)
@@ -61,9 +62,7 @@ spawnBackend config = do
                           credentials = (lookup "dbuser" cfg, 
                                          lookup "dbpassword" cfg) }
     env <- liftIO $ setupEnv $ environment { envDB = db }
-    boxes <- spawnStdActor backendHandler env []
-    -- TODO: append control box to children
-    return boxes
+    spawnStdActor backendHandler env
 
 backendHandler :: MsgHandler Environment Request
 backendHandler env (Query qu client) = do
@@ -85,16 +84,14 @@ demo = runActor act minimalContext where
   act = do
       self <- stdBoxes
       respBox <- mailbox
+      spawnConIn self
       config <- spawnConfigDef
       backend <- spawnBackend config
-      spawnConIn self
       output <- spawnConOut
       let behvs = stdBehvs self 
                            (inpHandler (messageBox backend) respBox)
                            [Behv respBox (responseHandler (messageBox output))]
-          children = [c config, c backend, c output] where c = controlBox
-          selfCtx = defContext () behvs children
-      ctxPut selfCtx 
+      updateContext () behvs
       defListener
 
 -- message handlers used by the demo function.

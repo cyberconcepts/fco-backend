@@ -29,7 +29,7 @@ import Control.Concurrent.Actor (
     MsgHandler, StdBoxes (..),
     messageBox, controlBox, 
     act_children, call, ctxGets, ctxPut, defContext, defListener, 
-    mailbox, minimalContext, updateContext,
+    mailbox, minimalContext, setDefContext,
     runActor, send, spawnStdActor, stdBehvs, stdBoxes)
 import Control.Concurrent.Actor.Config (
     ConfigRequest (..), ConfigResponse (..),
@@ -91,7 +91,7 @@ demo = runActor act minimalContext where
       let behvs = stdBehvs self 
                            (inpHandler (messageBox backend) respBox)
                            [Behv respBox (responseHandler (messageBox output))]
-      updateContext () behvs
+      setDefContext () behvs
       defListener
 
 -- message handlers used by the demo function.

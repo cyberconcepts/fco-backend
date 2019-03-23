@@ -2,7 +2,7 @@
 
 module Fco.Backend.Database (
     Connection, DBSettings (..), Environment (..),
-    connect, disconnect, dbSettings, setupEnv, withDBPool,
+    connect, disconnect, dbPool, dbSettings, withDBPool,
     addNode, getNode, queryNode,
     addText, getText, queryText,
     addTriple, getTriple, queryTriple, queryTriples,
@@ -27,7 +27,6 @@ import Fco.Core.Types (Namespace (..), NodeName)
 -- * database connections
 
 data Environment = Environment {
-                      envDB :: DBSettings,
                       envPool :: Pool Connection,
                       envNamespaces :: [(NamespaceId, Namespace)] }
                     deriving Show
@@ -48,14 +47,6 @@ connect settings = connectPostgreSQL $
 
 dbPool :: DBSettings -> IO (Pool Connection)
 dbPool db = createPool (connect db) disconnect 3 600 20
-
-setupEnv :: DBSettings -> IO Environment
-setupEnv db = do
-    pool <- dbPool db
-    let env0 = Environment db pool []
-    withDBPool env0 $ \conn -> do
-        nss <- getNamespaces conn
-        return $ env0 { envNamespaces = nss }
 
 withDBPool :: Environment -> (Connection -> IO c) -> IO c
 withDBPool env = withResource $ envPool env

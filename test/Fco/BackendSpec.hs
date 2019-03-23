@@ -9,7 +9,7 @@ import BasicPrelude
 import Data.IntMap (elems, fromList)
 
 import Fco.Backend (
-    dbName, dbSettings, envDB, setupEnv, 
+    dbName, dbSettings, setupEnv, 
     getOrCreateNode, getOrCreateTriple, showTriple, 
     parseQuery, parseTriple, query, queryTxt, queryTriples)
 import Fco.Backend.Types (

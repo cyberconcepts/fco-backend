@@ -2,7 +2,7 @@
 
 module Fco.Backend (
     Environment,
-    credentials, dbName, dbSettings, envDB, setupEnv, withDBPool,
+    credentials, dbName, dbSettings, setupEnv, withDBPool,
     getOrCreateNode, getOrCreateTriple,
     parseQuery, parseTriple,
     query, queryNode, queryText, queryTxt, queryTriple, queryTriples,
@@ -17,10 +17,8 @@ import qualified Data.Text as T
 import Data.IntMap (elems, fromList)
 
 import Fco.Backend.Database (
-    Connection, DBSettings, Environment,
-    connect, disconnect, credentials,
-    dbName, dbSettings, envDB, envNamespaces, 
-    setupEnv, withDBPool,
+    Connection, DBSettings, Environment (..),
+    credentials, dbName, dbPool, dbSettings, envNamespaces, withDBPool,
     getNamespaces,
     addNode, getNode, queryNode,
     addText, getText, queryText,
@@ -38,7 +36,18 @@ import Fco.Core.Types (Namespace (..), NodeName)
 import qualified Fco.Core.Types as CT
 
 
--- high-level functions using core triple format
+-- * environment
+
+setupEnv :: DBSettings -> IO Environment
+setupEnv db = do
+    pool <- dbPool db
+    let env0 = Environment pool []
+    withDBPool env0 $ \conn -> do
+        nss <- getNamespaces conn
+        return $ env0 { envNamespaces = nss }
+
+
+-- * high-level functions using core triple format
 
 query :: Environment -> CT.Query -> IO [CT.Triple]
 query env query = 

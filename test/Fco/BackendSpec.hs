@@ -11,10 +11,10 @@ import Fco.Backend (
             getOrCreateNode, getOrCreateTriple, 
             parseQuery, parseTriple, query, queryTxt, queryTriples,
             setupEnv,
-            showTriple, withConnection)
-import Fco.Backend.Types (
-            Object (..), Triple (..), TripleQuery (..), QueryCrit (..),
+            showTriple, withConnection,
             dbSettings, dbName, environment, envDB)
+import Fco.Backend.Types (
+            Object (..), Triple (..), TripleQuery (..), QueryCrit (..))
 
 
 main :: IO ()

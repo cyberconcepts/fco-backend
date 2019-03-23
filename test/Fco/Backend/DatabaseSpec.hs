@@ -11,13 +11,14 @@ import Data.Text (unpack)
 import Database.HDBC (commit, disconnect, getTables, hdbcDriverName, runRaw)
 
 import Fco.Backend.Database (
-        Connection, connect, getNamespaces,
+        Connection, connect,
+        dbName, dbSettings, setEnvDBPool, withDBPool,
+        getNamespaces,
         addNode, getNode, queryNode, addTriple, getTriple, 
         queryTriple, queryTriples)
 import Fco.Backend.Types (
         Node (..), Triple (..), Object(..),
-        TripleQuery (..), QueryCrit (..),
-        dbName, dbSettings)
+        TripleQuery (..), QueryCrit (..))
 import Fco.Core.Types (Namespace (..))
 
 

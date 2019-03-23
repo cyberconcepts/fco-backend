@@ -1,30 +1,46 @@
 {-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
 
 module Fco.Backend.Database (
-          Connection,
-          connect, disconnect, 
-          dbName, credentials,
-          addNode, getNode, queryNode,
-          addText, getText, queryText,
-          addTriple, getTriple, queryTriple, queryTriples,
-          getNamespaces) where
+    Connection, DBSettings (..), Environment (..),
+    connect, disconnect, 
+    dbSettings, environment, setEnvDBPool, withDBPool,
+    addNode, getNode, queryNode,
+    addText, getText, queryText,
+    addTriple, getTriple, queryTriple, queryTriples,
+    getNamespaces) where
 
 import BasicPrelude
+import Data.Pool (Pool, createPool, withResource)
 import Data.Text (unpack)
 import Database.HDBC.PostgreSQL (Connection, connectPostgreSQL)
-import Database.HDBC (IConnection, SqlValue,
-                      commit, disconnect, execute, fetchAllRows', fetchRow, fromSql,
-                      prepare, run, runRaw, toSql)
+import Database.HDBC (
+    IConnection, SqlValue,
+    commit, disconnect, execute, fetchAllRows', fetchRow, fromSql,
+    prepare, run, runRaw, toSql)
 
 import Fco.Backend.Types (
-          DBSettings (..),
-          NamespaceId, NodeId, TripleId, TextId,
-          Node (..), Triple (..), Object (..),  
-          QueryCrit (..), TripleQuery (..),
-          dbSettings)
+    NamespaceId, NodeId, TripleId, TextId,
+    Node (..), Triple (..), Object (..),  
+    QueryCrit (..), TripleQuery (..))
 import Fco.Core.Types (Namespace (..), NodeName)
 
--- connect
+
+-- * database connections
+
+data Environment = Environment {
+                      envDB :: DBSettings,
+                      envPool :: Pool Connection,
+                      envNamespaces :: [(NamespaceId, Namespace)] }
+                    deriving Show
+
+environment = Environment dbSettings undefined []
+
+data DBSettings = DBSettings {
+                      dbName :: Text,
+                      credentials :: (Text, Text) }
+                    deriving Show
+
+dbSettings = DBSettings "fco01" ("fco", "funky")
 
 connect :: DBSettings -> IO Connection
 connect settings = connectPostgreSQL $ 
@@ -33,7 +49,19 @@ connect settings = connectPostgreSQL $
               " password=" ++ unpack password
           where (userName, password) = credentials settings
 
--- API
+dbPool :: DBSettings -> IO (Pool Connection)
+dbPool settings = createPool (connect settings) disconnect 3 600 20
+
+setEnvDBPool :: Environment -> DBSettings -> IO Environment
+setEnvDBPool env settings = do
+    pool <- dbPool settings
+    return env { envPool = pool }
+
+withDBPool :: Environment -> (Connection -> IO c) -> IO c
+withDBPool env = withResource $ envPool env
+
+
+-- * API
 
 -- namespaces
 

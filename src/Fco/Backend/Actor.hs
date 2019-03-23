@@ -36,10 +36,11 @@ import Control.Concurrent.Actor.Config (
     spawnConfigDef)
 import Control.Concurrent.Actor.Console (spawnConIn, spawnConOut)
 
-import Fco.Backend (setupEnv, query, storeTriple)
-import Fco.Backend.Types (
+import Fco.Backend (
     Environment, 
-    credentials, dbSettings, dbName, envDB, environment)
+    setupEnv, query, storeTriple,
+    credentials, dbSettings, dbName, envDB, environment,
+    setEnvDBPool, withDBPool)
 import qualified Fco.Core.Parse as CP
 import qualified Fco.Core.Show as CS
 import Fco.Core.Struct (lookup)
@@ -61,7 +62,9 @@ spawnBackend config = do
     let db = dbSettings { dbName = lookup "dbname" cfg,
                           credentials = (lookup "dbuser" cfg, 
                                          lookup "dbpassword" cfg) }
-    env <- liftIO $ setupEnv $ environment { envDB = db }
+        env0 = environment { envDB = db }
+    --env1 <- liftIO $ setEnvDBPool env0 db
+    env <- liftIO $ setupEnv env0
     spawnStdActor backendHandler env
 
 backendHandler :: MsgHandler Environment Request

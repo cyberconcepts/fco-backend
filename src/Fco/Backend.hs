@@ -1,6 +1,14 @@
 {-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
 
-module Fco.Backend where
+module Fco.Backend (
+    Environment,
+    credentials, dbName, dbSettings, envDB, environment, setupEnv,
+    getOrCreateNode, getOrCreateTriple,
+    parseQuery, parseTriple,
+    query, queryNode, queryText, queryTxt, queryTriple, queryTriples,
+    showTriple, storeTriple, storeTriples,
+    setEnvDBPool, withConnection, withDBPool
+    ) where
 
 import BasicPrelude
 import Control.Exception (bracket)
@@ -10,21 +18,21 @@ import qualified Data.Text as T
 import Data.IntMap (elems, fromList)
 
 import Fco.Backend.Database (
-                Connection,
-                connect, disconnect, 
+                Connection, DBSettings, Environment,
+                connect, disconnect, credentials, environment,
+                dbName, dbSettings, envDB, envNamespaces, 
+                setEnvDBPool, withDBPool,
                 getNamespaces,
                 addNode, getNode, queryNode,
                 addText, getText, queryText,
                 addTriple, queryTriple)
 import qualified Fco.Backend.Database as DB
 import Fco.Backend.Types (
-                DBSettings, Environment,
                 NamespaceId, 
                 NodeId, TextId, Node (..),
                 TripleId, Triple (..),
                 Object (..), 
-                QueryCrit (..), TripleQuery (..),
-                dbSettings, envDB, envNamespaces)
+                QueryCrit (..), TripleQuery (..))
 import qualified Fco.Core.Parse as CP
 import qualified Fco.Core.Show as CS
 import Fco.Core.Types (Namespace (..), NodeName)
@@ -35,7 +43,7 @@ import qualified Fco.Core.Types as CT
 
 query :: Environment -> CT.Query -> IO [CT.Triple]
 query env query = 
-    withConnection (envDB env) $ \conn ->
+    withDBPool env $ \conn ->
         fromCoreQuery env query >>=
         queryTriples conn >>=
         mapM (toCoreTriple env) . elems
@@ -164,8 +172,9 @@ findNameSpaceByPrefix env prefix =
     where checkPrefix (id, Namespace iri pf) = pf == prefix
 
 setupEnv :: Environment -> IO Environment
-setupEnv env = 
-    withConnection (envDB env) $ \conn -> do
+setupEnv env0 = do
+    env <- setEnvDBPool env0 $ envDB env0
+    withDBPool env $ \conn -> do
         nss <- getNamespaces conn
         return $ env { envNamespaces = nss }
 

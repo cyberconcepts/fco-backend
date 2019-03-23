@@ -1,13 +1,13 @@
 name:                 fco-backend
-version:              0.2.0.2
+version:              0.2.0.3
 synopsis:             fco backend modules, providing persistence and a native Haskell API
 description:          Please see README.md
 homepage:             http://github.com/cyberconcepts/fco-backend
-license:              BSD3
+license:              MIT
 license-file:         LICENSE
-author:               functionalconcepts.org team
-maintainer:           team@functionalconcepts.org
-copyright:            Copyright 2019 functionalconcepts.org team
+author:               team@functionalconcepts.org
+maintainer:           helmutm@cy55.de
+copyright:            2019 team@functionalconcepts.org
 category:             Semantic Web
 build-type:           Simple
 -- extra-source-files:
@@ -28,9 +28,8 @@ library
                     -- , hasql
                     , HDBC
                     , HDBC-postgresql
+                    , resource-pool
                     -- , configurator  -- or: ConfigFile, app-settings
-                    -- , mtl
-                    -- , recursion-schemes
                     , fco-actor
                     , fco-core
   default-language:   Haskell2010

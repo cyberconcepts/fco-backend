@@ -1,5 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
-module Fco.Backend.DatabaseSpec (main, spec, initTestDB) where
+module Fco.Backend.DatabaseSpec (main, spec, initTestDB, withConnection) where
 
 import Test.Hspec
 import Test.QuickCheck
@@ -11,14 +11,13 @@ import Data.Text (unpack)
 import Database.HDBC (commit, disconnect, getTables, hdbcDriverName, runRaw)
 
 import Fco.Backend.Database (
-        Connection, connect,
-        dbName, dbSettings, setEnvDBPool, withDBPool,
-        getNamespaces,
-        addNode, getNode, queryNode, addTriple, getTriple, 
-        queryTriple, queryTriples)
+    Connection, connect, dbName, dbSettings, withDBPool,
+    getNamespaces,
+    addNode, getNode, queryNode, addTriple, getTriple, 
+    queryTriple, queryTriples)
 import Fco.Backend.Types (
-        Node (..), Triple (..), Object(..),
-        TripleQuery (..), QueryCrit (..))
+    Node (..), Triple (..), Object(..),
+    TripleQuery (..), QueryCrit (..))
 import Fco.Core.Types (Namespace (..))
 
 
@@ -37,7 +36,6 @@ runSqlFromFile conn path = do
     sql <- readFile path
     runRaw conn $ unpack sql
     commit conn
-
 
 initTestDB :: IO ()
 initTestDB = do

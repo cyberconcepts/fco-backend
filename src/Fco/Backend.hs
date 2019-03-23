@@ -2,12 +2,11 @@
 
 module Fco.Backend (
     Environment,
-    credentials, dbName, dbSettings, envDB, environment, setupEnv,
+    credentials, dbName, dbSettings, envDB, setupEnv, withDBPool,
     getOrCreateNode, getOrCreateTriple,
     parseQuery, parseTriple,
     query, queryNode, queryText, queryTxt, queryTriple, queryTriples,
-    showTriple, storeTriple, storeTriples,
-    setEnvDBPool, withConnection, withDBPool
+    showTriple, storeTriple, storeTriples
     ) where
 
 import BasicPrelude
@@ -18,21 +17,21 @@ import qualified Data.Text as T
 import Data.IntMap (elems, fromList)
 
 import Fco.Backend.Database (
-                Connection, DBSettings, Environment,
-                connect, disconnect, credentials, environment,
-                dbName, dbSettings, envDB, envNamespaces, 
-                setEnvDBPool, withDBPool,
-                getNamespaces,
-                addNode, getNode, queryNode,
-                addText, getText, queryText,
-                addTriple, queryTriple)
+    Connection, DBSettings, Environment,
+    connect, disconnect, credentials,
+    dbName, dbSettings, envDB, envNamespaces, 
+    setupEnv, withDBPool,
+    getNamespaces,
+    addNode, getNode, queryNode,
+    addText, getText, queryText,
+    addTriple, queryTriple)
 import qualified Fco.Backend.Database as DB
 import Fco.Backend.Types (
-                NamespaceId, 
-                NodeId, TextId, Node (..),
-                TripleId, Triple (..),
-                Object (..), 
-                QueryCrit (..), TripleQuery (..))
+    NamespaceId, 
+    NodeId, TextId, Node (..),
+    TripleId, Triple (..),
+    Object (..), 
+    QueryCrit (..), TripleQuery (..))
 import qualified Fco.Core.Parse as CP
 import qualified Fco.Core.Show as CS
 import Fco.Core.Types (Namespace (..), NodeName)
@@ -57,7 +56,7 @@ queryTxt env txt =
 storeTriple :: Environment -> CT.Triple -> IO ()
 storeTriple env ct = do
     Triple s p o <- fromCoreTriple env ct
-    withConnection (envDB env) $ \conn ->
+    withDBPool env $ \conn ->
         getOrCreateTriple conn s p o
     return ()
 
@@ -79,7 +78,7 @@ parseTriple :: Environment -> Text -> IO TripleId
 parseTriple env txt = do
     let ct = CP.parseTriple (Namespace "") txt
     Triple s p o <- fromCoreTriple env ct
-    withConnection (envDB env) $ \conn ->
+    withDBPool env $ \conn ->
         getOrCreateTriple conn s p o    
 
 
@@ -93,13 +92,13 @@ parseQuery env txt =
 
 toCoreNode :: Environment -> NodeId -> IO CT.Node
 toCoreNode env nodeId = 
-    withConnection (envDB env) $ \conn -> do
+    withDBPool env $ \conn -> do
         Node nsId name <- getNode conn nodeId
         return $ CT.Node (getNamespace env nsId) name
 
 toText :: Environment -> TextId -> IO Text
 toText env txtId = 
-    withConnection (envDB env) $ \conn -> getText conn txtId
+    withDBPool env $ \conn -> getText conn txtId
 
 toCoreObject :: Environment -> Object -> IO CT.Object
 toCoreObject env (Object 1 nodeId) =
@@ -118,12 +117,12 @@ toCoreTriple env (Triple subject predicate object) = do
 
 fromCoreNode :: Environment -> CT.Node -> IO NodeId
 fromCoreNode env (CT.Node (Namespace iri prefix) name) =
-    withConnection (envDB env) $ \conn ->
+    withDBPool env $ \conn ->
         getOrCreateNode conn (findNameSpaceByPrefix env prefix) name
 
 fromText :: Environment -> Text -> IO TextId
 fromText env txt =
-    withConnection (envDB env) $ \conn ->
+    withDBPool env $ \conn ->
         getOrCreateText conn txt
 
 fromCoreObject :: Environment -> CT.Object -> IO Object
@@ -171,22 +170,8 @@ findNameSpaceByPrefix env prefix =
         Nothing -> error $ "Namespace " ++ (show prefix) ++ " not found!"
     where checkPrefix (id, Namespace iri pf) = pf == prefix
 
-setupEnv :: Environment -> IO Environment
-setupEnv env0 = do
-    env <- setEnvDBPool env0 $ envDB env0
-    withDBPool env $ \conn -> do
-        nss <- getNamespaces conn
-        return $ env { envNamespaces = nss }
-
 
 -- lower-level database-related stuff
-
-fcoConnect :: DBSettings -> IO Connection
-fcoConnect settings = connect settings
-
-withConnection :: DBSettings -> (Connection -> IO c) -> IO c
-withConnection settings = bracket (fcoConnect settings) disconnect
-
 
 getOrCreateNode :: Connection -> NamespaceId -> Text -> IO NodeId
 getOrCreateNode conn nsId name = do
